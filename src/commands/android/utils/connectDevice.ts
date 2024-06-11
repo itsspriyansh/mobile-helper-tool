@@ -1,4 +1,4 @@
-import {Platform} from '../interfaces';
+import {AvailableSystemImages, Platform} from '../interfaces';
 import {execBinarySync} from './sdk';
 import Logger from '../../../logger';
 import inquirer from 'inquirer';
@@ -6,6 +6,7 @@ import colors from 'ansi-colors';
 import { getBinaryLocation } from './common';
 import { launchAVD } from '../adb';
 import ADB from 'appium-adb';
+import { APILevelNames } from '../constants';
 
 export async function connectWirelessAdb(sdkRoot: string, platform: Platform): Promise<boolean> {
   try {
@@ -205,4 +206,146 @@ export async function defaultConnectFlow(sdkRoot: string, platform: Platform) {
         Logger.log('Invalid option selected.');
         return false;
     }
+}
+
+export async function getSystemImages(sdkRoot: string, platform: Platform): Promise<boolean> {
+  const sdkmanagerLocation = getBinaryLocation(sdkRoot, platform, 'sdkmanager', true);
+  
+  if (!sdkmanagerLocation) {
+    Logger.log(`${colors.red('sdkmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
+    
+    return false;
+  }
+
+  const stdout = execBinarySync(sdkmanagerLocation, 'sdkmanager', platform, '--list | grep "system-images;"');
+
+  if (!stdout) {
+    Logger.log(`${colors.red('Failed to fetch system images!')} Please try again.`);
+
+    return false;
+  }
+
+  const images = stdout.split('\n').sort();
+  const imageNames = new Set<string>();
+
+  images.forEach(image => {
+    const imageName = image.split('|')[0].trim();
+    imageNames.add(imageName);
+  });
+
+  const availableSystemImages: AvailableSystemImages = {};
+
+  imageNames.forEach(image => {
+    if (!image.includes('system-image')) return;
+
+    const imageSplit = image.split(';');
+    const apiLevel = imageSplit[1];
+    const type = imageSplit[2];
+    const arch = imageSplit[3];
+
+    if (!availableSystemImages[apiLevel]) {
+      availableSystemImages[apiLevel] = [];
+    }
+
+    const imageType = availableSystemImages[apiLevel].find(image => image.type === type);
+
+    if (!imageType) {
+      availableSystemImages[apiLevel].push({
+        type: type,
+        archs: [arch]
+      })
+    } else {
+      imageType.archs.push(arch);
+    }
+  });
+
+  const apiLevelsWithNames = Object.keys(availableSystemImages).map(apiLevel => {
+    if (APILevelNames[apiLevel]) {
+
+      return `${apiLevel} - ${APILevelNames[apiLevel].name} (v${APILevelNames[apiLevel].version})`;
+    }
+    return apiLevel;
+  })
+
+  const androidVersionAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'androidVersion',
+    message: 'Select the Android version for system image:',
+    choices: apiLevelsWithNames
+  });
+  const apiLevel = androidVersionAnswer.androidVersion.split(' ')[0];
+  
+  Logger.log();
+
+  const systemImageTypeAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'systemImageType',
+    message: `Select the system image type for ${colors.cyan(apiLevel)}:`,
+    choices: availableSystemImages[apiLevel].map(image => image.type)
+  });
+
+  Logger.log();
+
+  const systemImageArchAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'systemImageArch',
+    message: `Select the architecture for the system image:`,
+    choices: availableSystemImages[apiLevel].find(image => image.type === systemImageTypeAnswer.systemImageType)?.archs
+  });
+
+  const systemImageFullName = `system-images;${apiLevel};${systemImageTypeAnswer.systemImageType};${systemImageArchAnswer.systemImageArch}`;
+
+  Logger.log();
+  Logger.log(`Downloading ${colors.cyan(systemImageFullName)}...\n`);
+
+  const downloading = execBinarySync(sdkmanagerLocation, 'sdkmanager', platform, `'${systemImageFullName}'`);
+  
+  if (downloading) {
+    Logger.log(`${colors.green('System image downloaded successfully!')}`);
+    
+    return true;
+  }
+  
+  return false;
+}
+
+export async function deleteSystemImage (sdkRoot: string, platform: Platform): Promise<boolean> {
+  const sdkmanagerLocation = getBinaryLocation(sdkRoot, platform, 'sdkmanager', true);
+
+  if (!sdkmanagerLocation) {
+    Logger.log(`${colors.red('sdkmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
+    
+    return false;
+  }
+
+  const stdout = execBinarySync(sdkmanagerLocation, 'sdkmanager', platform, '--list | grep "system-images/"');
+
+  if (!stdout) {
+    Logger.log(`${colors.red('Failed to fetch system images!')} Please try again.`);
+
+    return false;
+  }
+
+  const lines = stdout.split('\n');
+  const installedImages: string[] = [];
+
+  lines.forEach(line => {
+    if (line.includes('system-images')) {
+      installedImages.push(line.split('|')[0].trim());
+    }
+  })
+
+  const systemImageAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'systemImage',
+    message: 'Select the system image to uninstall:',
+    choices: installedImages
+  });
+
+  Logger.log();
+  Logger.log(`Uninstalling ${colors.cyan(systemImageAnswer.systemImage)}...\n`);
+
+  execBinarySync(sdkmanagerLocation, 'sdkmanager', platform, `--uninstall '${systemImageAnswer.systemImage}'`);
+
+  return false; 
 }

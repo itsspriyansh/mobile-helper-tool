@@ -2,7 +2,7 @@ import inquirer from 'inquirer';
 import path from 'path';
 import os from 'os';
 
-import {AvailableOptions, AvailableSubcommands, SdkBinary} from './interfaces';
+import {ApiLevelNames, AvailableOptions, AvailableSubcommands, SdkBinary} from './interfaces';
 
 export const AVAILABLE_OPTIONS: AvailableOptions = {
   help: {
@@ -51,6 +51,25 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
   },
   disconnect: {
     description: 'Disconnect an AVD or a real device',
+    options: []
+  },
+  install: {
+    description: 'Install system images for Android Virtual Device',
+    options: [
+      {
+        name: "system-image",
+        description: "Install system image for Android Virtual Device"
+      }
+    ]
+  },
+  uninstall: {
+    description: 'Uninstall system images for Android Virtual Device',
+    options: [
+      {
+        name: "system-image",
+        description: "Uninstall a currently installed system image from the device."
+      }
+    ]
   }
 }
 
@@ -115,4 +134,107 @@ export const BINARY_TO_PACKAGE_NAME: Record<SdkBinary | typeof NIGHTWATCH_AVD, s
   adb: 'platform-tools',
   emulator: 'emulator',
   [NIGHTWATCH_AVD]: `system-images;android-30;google_apis;${ABI}`
+};
+
+export const APILevelNames: ApiLevelNames = {
+  'android-10': {
+      version: '2.3.3-2.3.7',
+      name: 'Gingerbread'
+  },
+  'android-11': {
+      version: '3.0',
+      name: 'Honeycomb'
+  },
+  'android-12': {
+      version: '3.1',
+      name: 'Honeycomb'
+  },
+  'android-13': {
+      version: '3.2',
+      name: 'Honeycomb'
+  },
+  'android-14': {
+      version: '4.0.1-4.0.2',
+      name: 'Ice Cream Sandwich'
+  },
+  'android-15': {
+      version: '4.0.3-4.0.4',
+      name: 'Ice Cream Sandwich'
+  },
+  'android-16': {
+      version: '4.1.x',
+      name: 'Jelly Bean'
+  },
+  'android-17': {
+      version: '4.2.x',
+      name: 'Jelly Bean'
+  },
+  'android-18': {
+      version: '4.3.x',
+      name: 'Jelly Bean'
+  },
+  'android-19': {
+      version: '4.4-4.4.4',
+      name: 'KitKat'
+  },
+  'android-20': {
+      version: '4.4W',
+      name: 'KitKat Wear'
+  },
+  'android-21': {
+      version: '5.0',
+      name: 'Lollipop'
+  },
+  'android-22': {
+      version: '5.1',
+      name: 'Lollipop'
+  },
+  'android-23': {
+      version: '6.0',
+      name: 'Marshmallow'
+  },
+  'android-24': {
+      version: '7.0',
+      name: 'Nougat'
+  },
+  'android-25': {
+      version: '7.1',
+      name: 'Nougat'
+  },
+  'android-26': {
+      version: '8.0',
+      name: 'Oreo'
+  },
+  'android-27': {
+      version: '8.1',
+      name: 'Oreo'
+  },
+  'android-28': {
+      version: '9.0',
+      name: 'Pie'
+  },
+  'android-29': {
+      version: '10',
+      name: 'Android 10'
+  },
+  'android-30': {
+      version: '11',
+      name: 'Android 11'
+  },
+  'android-31': {
+      version: '12',
+      name: 'Android 12'
+  },
+  'android-32': {
+      version: '12L',
+      name: 'Android 12L'
+  },
+  'android-33': {
+      version: '13',
+      name: 'Android 13'
+  },
+  'android-34': {
+      version: '14',
+      name: 'Android 14'
+  }
 };

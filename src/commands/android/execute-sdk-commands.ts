@@ -9,7 +9,9 @@ import {
   connectAvd,
   connectWirelessAdb,
   defaultConnectFlow,
+  deleteSystemImage,
   disconnectDevice,
+  getSystemImages,
   listRunningDevices,
 } from "./utils/connectDevice";
 import { AVAILABLE_SUBCOMMANDS } from "./constants";
@@ -36,8 +38,8 @@ export class SdkCommandExecute {
       showHelp([], this.subcommand);
       
       return false;
-    } 
-    
+    }
+
     const unknownOptions = this.getUnknownOptions();
     if (unknownOptions.length) {
       showHelp(unknownOptions);
@@ -69,7 +71,7 @@ export class SdkCommandExecute {
   getUnknownOptions(): string[] {
     const allAvailableOptions = getAllAvailableOptions();
     // include all the corresponding options of the subcommand.
-    allAvailableOptions.concat(Object.keys(AVAILABLE_SUBCOMMANDS[this.subcommand].options || []));
+    allAvailableOptions.push(...(AVAILABLE_SUBCOMMANDS[this.subcommand].options).map((option) => option.name));
 
     return Object.keys(this.options).filter((option) => !allAvailableOptions.includes(option));
   }
@@ -97,6 +99,20 @@ export class SdkCommandExecute {
       return await disconnectDevice(this.sdkRoot, this.platform);
     }
     
+    if (this.subcommand === 'install') {
+      // execute script for downloading system image for AVD.
+      if (this.options['system-image']) {
+        return await getSystemImages(this.sdkRoot, this.platform);
+      }
+    }
+
+    if (this.subcommand === 'uninstall') {
+      // execute script for uninstalling system image from AVD.
+      if (this.options['system-image']) {
+        return await deleteSystemImage(this.sdkRoot, this.platform);
+      }
+    }
+
     return false;
   }
 }

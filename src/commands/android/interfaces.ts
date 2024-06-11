@@ -18,7 +18,7 @@ export interface Options {
 export interface AvailableSubcommands {
   [key: string]: {
     description: string;
-    options?: {
+    options: {
       name: string;
       description: string;
     }[]
@@ -38,3 +38,17 @@ export interface SetupConfigs {
 }
 
 export type SdkBinary = 'sdkmanager' | 'adb' | 'emulator' | 'avdmanager';
+
+export interface AvailableSystemImages {
+  [key: string]: {
+      type: string;
+      archs: string[];
+  }[]
+}
+
+export interface ApiLevelNames {
+  [key: string]: {
+    version: string;
+    name: string;
+  }
+}
