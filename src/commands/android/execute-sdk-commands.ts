@@ -1,4 +1,4 @@
-import { getAllAvailableOptions, getSdkRootFromEnv, showHelp } from "./utils/common";
+import { getSdkRootFromEnv, showHelp } from "./utils/common";
 import { getPlatformName } from "../../utils";
 import { Options, Platform } from "./interfaces";
 import * as dotenv from "dotenv";
@@ -69,11 +69,10 @@ export class SdkCommandExecute {
   }
 
   getUnknownOptions(): string[] {
-    const allAvailableOptions = getAllAvailableOptions();
-    // include all the corresponding options of the subcommand.
-    allAvailableOptions.push(...(AVAILABLE_SUBCOMMANDS[this.subcommand].options).map((option) => option.name));
+    const optionsPassed = Object.keys(this.options).filter(option => this.options[option]);
+    const availableOptions = AVAILABLE_SUBCOMMANDS[this.subcommand].options.map(option => option.name);
 
-    return Object.keys(this.options).filter((option) => !allAvailableOptions.includes(option));
+    return optionsPassed.filter((option) => !availableOptions.includes(option));
   }
 
   async executeSdkScript(): Promise<boolean> {
