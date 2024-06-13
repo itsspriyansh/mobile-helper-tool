@@ -12,6 +12,7 @@ import {
   deleteSystemImage,
   disconnectDevice,
   getSystemImages,
+  installApk,
   listRunningDevices,
 } from "./utils/connectDevice";
 import { AVAILABLE_SUBCOMMANDS } from "./constants";
@@ -69,7 +70,7 @@ export class SdkCommandExecute {
   }
 
   getUnknownOptions(): string[] {
-    const optionsPassed = Object.keys(this.options).filter(option => this.options[option]);
+    const optionsPassed = Object.keys(this.options).filter(option => this.options[option] === true);
     const availableOptions = AVAILABLE_SUBCOMMANDS[this.subcommand].options.map(option => option.name);
 
     return optionsPassed.filter((option) => !availableOptions.includes(option));
@@ -103,6 +104,10 @@ export class SdkCommandExecute {
       if (this.options['system-image']) {
         return await getSystemImages(this.sdkRoot, this.platform);
       }
+      // execute script for installing an APk on the device.
+      if (this. options.app) {
+        return await installApk(this.options, this.sdkRoot, this.platform);
+      } 
     }
 
     if (this.subcommand === 'uninstall') {

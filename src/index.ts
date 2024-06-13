@@ -15,7 +15,8 @@ export const run = () => {
         help: 'h',
         mode: 'm',
         browsers: ['b', 'browser'],
-        setup: ['install', 'i']
+        setup: ['install', 'i'],
+        path: 'p',
       }
     });
 

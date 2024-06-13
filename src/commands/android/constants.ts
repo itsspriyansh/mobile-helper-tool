@@ -59,6 +59,10 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
       {
         name: "system-image",
         description: "Install system image for Android Virtual Device"
+      },
+      {
+        name: "app",
+        description: "Install an APK on the device."
       }
     ]
   },
