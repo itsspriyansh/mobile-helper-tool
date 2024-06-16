@@ -8,7 +8,9 @@ import Logger from "../../logger";
 import {
   connectAvd,
   connectWirelessAdb,
+  createAvd,
   defaultConnectFlow,
+  defaultInstallFlow,
   deleteSystemImage,
   disconnectDevice,
   getSystemImages,
@@ -77,8 +79,8 @@ export class SdkCommandExecute {
   }
 
   async executeSdkScript(): Promise<boolean> {
+
     if (this.subcommand === "connect") {
-    // check the corresponding options for the 'connect' subcommand.
       if (this.options.wireless) {
         // execute script for wireless adb connection.
         return await connectWirelessAdb(this.sdkRoot, this.platform);
@@ -95,24 +97,29 @@ export class SdkCommandExecute {
     }
 
     if (this.subcommand === "disconnect") {
-    // execute script for disconnecting a device.
+      // execute script for disconnecting a device.
       return await disconnectDevice(this.sdkRoot, this.platform);
     }
     
     if (this.subcommand === 'install') {
-      // execute script for downloading system image for AVD.
       if (this.options['system-image']) {
+        // execute script for downloading system image for AVD.
         return await getSystemImages(this.sdkRoot, this.platform);
-      }
-      // execute script for installing an APk on the device.
-      if (this. options.app) {
+      } else if (this.options.avd) {
+        // execute script for creating an AVD.
+        return await createAvd(this.sdkRoot, this.platform);
+      } else if (this. options.app) {
+        // execute script for installing an APk on the device.
         return await installApk(this.options, this.sdkRoot, this.platform);
-      } 
+      } else {
+        // execute the default connection flow.
+        return await defaultInstallFlow(this.sdkRoot, this.platform);
+      }
     }
 
     if (this.subcommand === 'uninstall') {
-      // execute script for uninstalling system image from AVD.
       if (this.options['system-image']) {
+        // execute script for uninstalling system image from AVD.
         return await deleteSystemImage(this.sdkRoot, this.platform);
       }
     }

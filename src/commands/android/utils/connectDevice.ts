@@ -320,23 +320,12 @@ export async function deleteSystemImage (sdkRoot: string, platform: Platform): P
 
     return false;
   }
+  const installedImages: string[] = await getInstalledSystemImages(sdkmanagerLocation, platform);
 
-  const stdout = execBinarySync(sdkmanagerLocation, 'sdkmanager', platform, '--list | grep "system-images/"');
-
-  if (!stdout) {
-    Logger.log(`${colors.red('Failed to fetch system images!')} Please try again.`);
+  if (installedImages.length === 0) {
 
     return false;
   }
-
-  const lines = stdout.split('\n');
-  const installedImages: string[] = [];
-
-  lines.forEach(line => {
-    if (line.includes('system-images')) {
-      installedImages.push(line.split('|')[0].trim());
-    }
-  })
 
   const systemImageAnswer = await inquirer.prompt({
     type: 'list',
@@ -349,6 +338,16 @@ export async function deleteSystemImage (sdkRoot: string, platform: Platform): P
   Logger.log(`Uninstalling ${colors.cyan(systemImageAnswer.systemImage)}...\n`);
 
   execBinarySync(sdkmanagerLocation, 'sdkmanager', platform, `--uninstall '${systemImageAnswer.systemImage}'`);
+
+  const installedImagesAfterDelete: string[] = await getInstalledSystemImages(sdkmanagerLocation, platform);
+
+  if (installedImagesAfterDelete.includes(systemImageAnswer.systemImage)) {
+    Logger.log(`${colors.red('Failed to uninstall system image!')} Please try again.`);
+
+    return false;
+  }
+
+  Logger.log(`${colors.green('System image uninstalled successfully!')}`);
 
   return false; 
 }
@@ -429,5 +428,153 @@ export async function installApk (options: Options, sdkRoot: string, platform: P
     console.error('Error:', error);
 
     return false;
+  }
+}
+
+export async function createAvd (sdkRoot: string, platform: Platform): Promise<boolean> {
+  const avdmanagerLocation = getBinaryLocation(sdkRoot, platform, 'avdmanager', true);
+  const sdkmanagerLocation = getBinaryLocation(sdkRoot, platform, 'sdkmanager', true); 
+
+  if (!avdmanagerLocation) {
+    Logger.log(`${colors.red('avdmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
+
+    return false;
+  }
+
+  if (!sdkmanagerLocation) {
+    Logger.log(`${colors.red('sdkmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
+
+    return false;
+  }
+
+  const installedAvds = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd -c');
+  if (!installedAvds) {
+    Logger.log(`${colors.yellow('Failed to fetch installed AVDs.')} Please try again.`)
+  
+    return false;
+  }
+
+  const avdNameAnswer = await inquirer.prompt({
+    type: 'input',
+    name: 'avdName',
+    message: 'Enter a name for the AVD:'
+  });
+  const avdName = avdNameAnswer.avdName;
+
+  Logger.log();
+
+  if (installedAvds.includes(avdName)) {
+    Logger.log(colors.yellow('AVD with the same name already exists!\n'));
+
+    const overwriteAnswer = await inquirer.prompt({
+      type: 'list',
+      name: 'overwrite',
+      message: 'Do you want to overwrite the existing AVD?',
+      choices: ['Yes', 'No']
+    });
+
+    if (overwriteAnswer.overwrite === 'No') {   
+      return false;
+    }
+    Logger.log();
+  }
+
+  const installedSystemImages: string[] = await getInstalledSystemImages(sdkmanagerLocation, platform);
+  if (installedSystemImages.length === 0) {
+
+    return false;
+  }
+
+  const systemImageAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'systemImage',
+    message: 'Select the system image to be used for AVD:',
+    choices: installedSystemImages
+  });
+  const systemImage = systemImageAnswer.systemImage;
+
+  Logger.log();
+
+  const availableDevices = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list devices -c');
+
+  if (!availableDevices) {
+    Logger.log(`${colors.red('No devices found!')} Please try again.`);
+
+    return false;
+  }
+
+  const deviceAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'device',
+    message: 'Select the device profile for AVD:',
+    choices: [...availableDevices.split('\n').filter(device => device !== ''), 'default']
+  });
+  const device = deviceAnswer.device;
+
+  Logger.log();
+
+  execBinarySync(avdmanagerLocation, 'avdmanager', platform, `create avd --name '${avdName}' --package '${systemImage}' ${device==='default' ? '' : `--device '${device}'`} --force`);
+
+  const installedAvdsAfterCreate = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd -c');
+
+  if (!installedAvdsAfterCreate) {
+    Logger.log(`${colors.yellow('Failed to confirm AVD creation!')} Please try launching the AVD using ${colors.cyan('npx @nightwatch/mobile-helper android connect --avd')} to confirm.\n`);
+
+    return false;
+  } else if (!installedAvdsAfterCreate.includes(avdName)) {
+    Logger.log(`${colors.red('Failed to create AVD!')} Please try again.`);
+
+    return false;
+  }
+
+  Logger.log(`${colors.green('AVD created successfully!')}`);
+
+  return true;
+}
+
+async function getInstalledSystemImages (sdkmanagerLocation: string, platform: Platform): Promise<string[]> {
+  const stdout = execBinarySync(sdkmanagerLocation, 'sdkmanager', platform, '--list');
+
+  if (!stdout) {
+    Logger.log(`${colors.red('Failed to fetch system images!')} Please try again.`);
+
+    return [];
+  }
+  const lines = stdout.split('\n');
+  const installedImages: string[] = [];
+
+  for (const line of lines) {
+    if (line.includes('Available Packages:')) {
+      break;
+    }
+    if (line.includes('system-images')) {
+      installedImages.push(line.split('|')[0].trim());
+    }
+  }
+
+  return installedImages;
+}
+
+export async function defaultInstallFlow(sdkRoot: string, platform: Platform) {
+  const installAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'installOption',
+    message: 'What would you like to install:',
+    choices: ['APK', 'System Image', 'AVD']
+  });
+  const installOption = installAnswer.installOption;
+
+  Logger.log();
+
+  switch (installOption) {
+    case 'APK':
+      return await installApk({}, sdkRoot, platform);
+    case 'System Image':
+      return await getSystemImages(sdkRoot, platform);
+    case 'AVD':
+      return await createAvd(sdkRoot, platform);
+    default:
+      Logger.log('Invalid option selected.');
+      return false;
   }
 }
