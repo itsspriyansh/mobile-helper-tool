@@ -1,42 +1,49 @@
-import {AvailableSystemImages, Options, Platform} from '../interfaces';
-import {execBinarySync} from './sdk';
-import Logger from '../../../logger';
+import path from 'path';
+import ADB from 'appium-adb';
 import inquirer from 'inquirer';
 import colors from 'ansi-colors';
-import { getBinaryLocation } from './common';
-import { launchAVD } from '../adb';
-import ADB from 'appium-adb';
-import { APILevelNames } from '../constants';
-import { homedir } from 'os';
-import path from 'path';
-import { existsSync } from 'fs';
+import Logger from '../../../logger';
+
+import {homedir} from 'os';
+import {existsSync} from 'fs';
+import {launchAVD} from '../adb';
+import {execBinarySync} from './sdk';
+import {symbols} from '../../../utils';
+import {APILevelNames} from '../constants';
+import {getBinaryLocation} from './common';
+import {AvailableSystemImages, Options, Platform} from '../interfaces';
 
 export async function connectWirelessAdb(sdkRoot: string, platform: Platform): Promise<boolean> {
   try {
     const adbLocation = getBinaryLocation(sdkRoot, platform, 'adb', true);
     if (adbLocation === '') {
-      Logger.log(`${colors.red('ADB not found!')} Use ${colors.magenta('--setup')} flag with the main command to setup missing requirements.`);
+      Logger.log(`  ${colors.red(symbols().fail)} ${colors.cyan('adb')} binary not found.\n`);
+      Logger.log(`Run: ${colors.cyan('npx @nightwatch/mobile-helper android --mode real --standalone')} to setup missing requirements.`);
+      Logger.log(`(Remove the ${colors.gray('--standalone')} flag from the above command if setting up for testing.)\n`);
 
       return false;
     }
 
-    Logger.log(`${colors.yellow('Note: This feature is available only for Android 11 and above.\n')}`);
+    Logger.log(`${colors.yellow('\nNote: Wireless debugging connection is only supported in Android 11 and above.\n')}`);
 
-    Logger.log(`${colors.bold('Follow the below steps to connect to your device wirelessly:')}\n`);
+    Logger.log(colors.bold('Follow the below steps to connect to your device wirelessly:\n'));
 
-    Logger.log(`1.Connect your device to the same network as your computer.`)
-    Logger.log(`${colors.grey('You may connect your device to your computer\'s hotspot')}\n`);
+    Logger.log('  1. Connect your device to the same network as your computer.');
+    Logger.log(`     ${colors.grey('You may connect your device to your computer\'s hotspot')}\n`);
 
-    Logger.log(`2.Enable developer options on your device by going to:`);
-    Logger.log(`${colors.cyan('Settings > About Phone > Build Number')}`);
-    Logger.log(`Tap on build number 7 times until you see the message ${colors.bold('You are now a developer!')}\n`);
+    Logger.log('  2. Enable developer options on your device by going to:');
+    Logger.log(`     ${colors.cyan('Settings > About phone > Build number')}`);
+    Logger.log(`     and tapping the ${colors.bold('Build number')} 7 times until you see the message: ${colors.bold('You are now a developer!')}\n`);
+    Logger.log(`     ${colors.grey('For more info, see: https://developer.android.com/studio/debug/dev-options#enable')}\n`);
 
-    Logger.log(`3.Enable wireless debugging on your device by searching ${colors.bold('wireless debugging')} in the search bar or by going to:`);
-    Logger.log(`${colors.cyan('Settings > Developer Options > Wireless Debugging')}\n`);
+    Logger.log(`  3. Enable ${colors.bold('Wireless debugging')} on your device by going to:`);
+    Logger.log(`     ${colors.cyan('Settings > Developer options > Wireless debugging')}`);
+    Logger.log(`     or, search for ${colors.bold('wireless debugging')} on your device's Settings app.\n`);
 
-    Logger.log(`4.Find the IP address and port number of your device on the wireless debugging screen`);
-    Logger.log(`${colors.grey('IP address and port number are separated by \':\' in the format <ip_address:port>\nwhere IP address comes before \':\' and port number comes after \':\'')}\n`);
-  
+    Logger.log('  4. Find the IP address and port number of your device on the Wireless debugging screen');
+    Logger.log(`     ${colors.grey('IP address and port number are separated by \':\' in the format <ip_address>:<port>')}`);
+    Logger.log(`     ${colors.grey('where IP address comes before \':\' and port number comes after \':\'')}\n`);
+
     const deviceIPAnswer = await inquirer.prompt({
       type: 'input',
       name: 'deviceIP',
@@ -52,9 +59,10 @@ export async function connectWirelessAdb(sdkRoot: string, platform: Platform): P
     const port = portAnswer.port;
 
     Logger.log();
-    Logger.log(`5.Now find your device's pairing code and pairing port number by going to:`);
-    Logger.log(`${colors.cyan('Settings > Wireless Debugging > Pair device with pairing code')}`);
-    Logger.log(`${colors.grey('Here you will find a pairing code and a')} ${colors.magenta('IP address:port')} ${colors.grey('combination.\nThe port number associated with the IP address is the required pairing port number.\n')}`);
+    Logger.log('  5. Now, find your device\'s pairing code and pairing port number by going to:');
+    Logger.log(`     ${colors.cyan('Wireless debugging > Pair device with pairing code')}`);
+    Logger.log(`     Here, you will find a pairing code and an IP address and port combination ${colors.grey('(in the format <ip_address>:<port>)')}`);
+    Logger.log('     The port number associated with the IP address is the required pairing port number.\n');
 
     const pairingCodeAnswer = await inquirer.prompt({
       type: 'input',
@@ -71,41 +79,46 @@ export async function connectWirelessAdb(sdkRoot: string, platform: Platform): P
     const pairingPort = pairingPortAnswer.pairingPort;
 
     Logger.log();
-    Logger.log('Pairing your device with your computer...\n');
+    Logger.log('Pairing with your device...');
 
     const pairing = execBinarySync(adbLocation, 'adb', platform, `pair ${deviceIP}:${pairingPort} ${pairingCode}`);
     if (pairing) {
-      Logger.log(`${colors.green('Pairing successful!')} Now connecting to device wirelessly...\n`);
+      Logger.log(colors.green('Pairing successful!\n'));
+      Logger.log('Connecting to your device...');
     } else {
-      Logger.log(`${colors.red('Pairing failed!')} Please try again.`);
+      Logger.log(`\n${colors.red('Pairing failed!')} Please try again.\n`);
 
       return false;
     }
 
-    const connecting = execBinarySync(adbLocation, 'adb', platform, `connect ${deviceIP}:${port}`);
-    if (connecting?.includes('connected')) {
-      Logger.log(colors.green('Connected to device wirelessly.'));
-    } else {
-      Logger.log(`${colors.red('Failed to connect!')} Please try again.`);
+    const connectionStatus = execBinarySync(adbLocation, 'adb', platform, `connect ${deviceIP}:${port}`);
+    if (!connectionStatus?.includes('connected')) {
+      if (connectionStatus) {
+        Logger.log(colors.red(`  ${symbols().fail} Failed to connect: ${connectionStatus}`), 'Please try again.\n');
+      } else {
+        Logger.log(`\n${colors.red('Failed to connect!')} Please try again.\n`);
+      }
 
       return false;
     }
+
+    Logger.log(colors.green('Connected successfully!\n'));
 
     return true;
   } catch (error) {
-    Logger.log('Error connecting to wifi ADB');
-    console.error('Error:', error);
+    Logger.log(colors.red('Error occurred while connecting to device wirelessly.'));
+    console.error(error);
 
     return false;
   }
 }
 
-export async function connectAvd (sdkRoot: string, platform: Platform): Promise<boolean> {
+export async function connectAvd(sdkRoot: string, platform: Platform): Promise<boolean> {
   const avdmanagerLocation = getBinaryLocation(sdkRoot, platform, 'avdmanager', true);
 
   if (!avdmanagerLocation) {
     Logger.log(`${colors.red('avdmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
-    
+
     return false;
   }
 
@@ -132,92 +145,109 @@ export async function connectAvd (sdkRoot: string, platform: Platform): Promise<
   } else {
     Logger.log(`${colors.red('No AVDs found!')} Use ${colors.magenta('--setup')} flag with the main command to setup missing requirements.`);
   }
+
   return false;
 }
 
-export async function disconnectDevice (sdkRoot: string, platform: Platform) {
-    const adbLocation = getBinaryLocation(sdkRoot, platform, 'adb', true);
-    const adb = await ADB.createADB({allowOfflineDevices: true});
-    const devices = await adb.getConnectedDevices();
+export async function disconnectDevice(sdkRoot: string, platform: Platform) {
+  const adbLocation = getBinaryLocation(sdkRoot, platform, 'adb', true);
+  const adb = await ADB.createADB({allowOfflineDevices: true});
+  const devices = await adb.getConnectedDevices();
 
-    if (devices.length === 0) {
-        Logger.log(`${colors.yellow('No device found running.')}`);
-        return true;
-    }
+  if (devices.length === 0) {
+    Logger.log(`${colors.yellow('No device found running.')}`);
 
-    const deviceAnswer = await inquirer.prompt({
-      type: 'list',
-      name: 'device',
-      message: 'Select the device to disconnect:',
-      choices: devices.map(device => device.udid)
-    });
-    const deviceId = deviceAnswer.device;
+    return true;
+  }
 
-    let disconnecting;
-    if (deviceId.includes('emulator')) {
-        disconnecting = execBinarySync(adbLocation, 'adb', platform, `-s ${deviceId} emu kill`);
-    } else {
-        disconnecting = execBinarySync(adbLocation, 'adb', platform, `disconnect ${deviceId}`);
-    }
-    console.log(disconnecting);
-    
-    return false;
+  const deviceAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'device',
+    message: 'Select the device to disconnect:',
+    choices: devices.map((device) => device.udid)
+  });
+  const deviceId = deviceAnswer.device;
+
+  let disconnecting;
+  if (deviceId.includes('emulator')) {
+    disconnecting = execBinarySync(
+      adbLocation,
+      'adb',
+      platform,
+      `-s ${deviceId} emu kill`
+    );
+  } else {
+    disconnecting = execBinarySync(
+      adbLocation,
+      'adb',
+      platform,
+      `disconnect ${deviceId}`
+    );
+  }
+  console.log(disconnecting);
+
+  return false;
 }
 
 export async function listRunningDevices() {
-    const adb = await ADB.createADB({ allowOfflineDevices: true });
-    const devices = await adb.getConnectedDevices();
+  const adb = await ADB.createADB({allowOfflineDevices: true});
+  const devices = await adb.getConnectedDevices();
 
-    if (devices.length === 0) {
-        Logger.log(`No device connected.`);
-        return true;
-    }
-
-    Logger.log(colors.bold('Connected Devices:'));
-
-    const maxUdidLength = devices.reduce((max, device) => Math.max(max, device.udid.length), 0);
-    const paddedLength = maxUdidLength + 2;
-
-    devices.forEach((device) => {
-        const paddedUdid = device.udid.padEnd(paddedLength);
-        Logger.log(`${paddedUdid}${device.state}`);
-    });
+  if (devices.length === 0) {
+    Logger.log('No device connected.');
 
     return true;
+  }
+
+  Logger.log(colors.bold('Connected Devices:'));
+
+  const maxUdidLength = devices.reduce(
+    (max, device) => Math.max(max, device.udid.length),
+    0
+  );
+  const paddedLength = maxUdidLength + 2;
+
+  devices.forEach((device) => {
+    const paddedUdid = device.udid.padEnd(paddedLength);
+    Logger.log(`${paddedUdid}${device.state}`);
+  });
+
+  return true;
 }
 
 export async function defaultConnectFlow(sdkRoot: string, platform: Platform) {
-    await listRunningDevices();
-    
-    Logger.log();
+  await listRunningDevices();
 
-    const connectAnswer = await inquirer.prompt({
-      type: 'list',
-      name: 'connectOption',
-      message: 'Select the type of device to connect:',
-      choices: ['Real Device', 'AVD']
-    });
-    const connectOption = connectAnswer.connectOption;
-    
-    Logger.log();
+  Logger.log();
 
-    switch (connectOption) {
-      case 'Real Device':
-        return await connectWirelessAdb(sdkRoot, platform);
-      case 'AVD':
-        return await connectAvd(sdkRoot, platform);
-      default:
-        Logger.log('Invalid option selected.');
-        return false;
-    }
+  const connectAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'connectOption',
+    message: 'Select the type of device to connect:',
+    choices: ['Real Device', 'AVD']
+  });
+  const connectOption = connectAnswer.connectOption;
+
+  Logger.log();
+
+  switch (connectOption) {
+    case 'Real Device':
+      return await connectWirelessAdb(sdkRoot, platform);
+    case 'AVD':
+      return await connectAvd(sdkRoot, platform);
+    default:
+      Logger.log('Invalid option selected.');
+
+      return false;
+  }
 }
 
 export async function getSystemImages(sdkRoot: string, platform: Platform): Promise<boolean> {
   const sdkmanagerLocation = getBinaryLocation(sdkRoot, platform, 'sdkmanager', true);
-  
+
   if (!sdkmanagerLocation) {
     Logger.log(`${colors.red('sdkmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
-    
+
     return false;
   }
 
@@ -240,7 +270,9 @@ export async function getSystemImages(sdkRoot: string, platform: Platform): Prom
   const availableSystemImages: AvailableSystemImages = {};
 
   imageNames.forEach(image => {
-    if (!image.includes('system-image')) return;
+    if (!image.includes('system-image')) {
+      return;
+    }
 
     const imageSplit = image.split(';');
     const apiLevel = imageSplit[1];
@@ -257,7 +289,7 @@ export async function getSystemImages(sdkRoot: string, platform: Platform): Prom
       availableSystemImages[apiLevel].push({
         type: type,
         archs: [arch]
-      })
+      });
     } else {
       imageType.archs.push(arch);
     }
@@ -268,8 +300,9 @@ export async function getSystemImages(sdkRoot: string, platform: Platform): Prom
 
       return `${apiLevel} - ${APILevelNames[apiLevel].name} (v${APILevelNames[apiLevel].version})`;
     }
+
     return apiLevel;
-  })
+  });
 
   const androidVersionAnswer = await inquirer.prompt({
     type: 'list',
@@ -293,7 +326,7 @@ export async function getSystemImages(sdkRoot: string, platform: Platform): Prom
   const systemImageArchAnswer = await inquirer.prompt({
     type: 'list',
     name: 'systemImageArch',
-    message: `Select the architecture for the system image:`,
+    message: 'Select the architecture for the system image:',
     choices: availableSystemImages[apiLevel].find(image => image.type === systemImageTypeAnswer.systemImageType)?.archs
   });
 
@@ -306,14 +339,14 @@ export async function getSystemImages(sdkRoot: string, platform: Platform): Prom
 
   if (downloading) {
     Logger.log(`${colors.green('System image downloaded successfully!')}`);
-    
+
     return true;
   }
 
   return false;
 }
 
-export async function deleteSystemImage (sdkRoot: string, platform: Platform): Promise<boolean> {
+export async function deleteSystemImage(sdkRoot: string, platform: Platform): Promise<boolean> {
   const sdkmanagerLocation = getBinaryLocation(sdkRoot, platform, 'sdkmanager', true);
 
   if (!sdkmanagerLocation) {
@@ -350,10 +383,10 @@ export async function deleteSystemImage (sdkRoot: string, platform: Platform): P
 
   Logger.log(`${colors.green('System image uninstalled successfully!')}`);
 
-  return false; 
+  return false;
 }
 
-export async function installApk (options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
+export async function installApk(options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
   try {
     const adbLocation = getBinaryLocation(sdkRoot, platform, 'adb', true);
     if (!adbLocation) {
@@ -376,7 +409,7 @@ export async function installApk (options: Options, sdkRoot: string, platform: P
     }
 
     if (options.s && devices.length > 1) {
-      // If device id is passed and there are multiple devices connected then 
+      // If device id is passed and there are multiple devices connected then
       // check if the id is valid. If not then prompt user to select a device.
       const device = devices.find(device => device.udid === options.s);
       if (!device) {
@@ -387,7 +420,7 @@ export async function installApk (options: Options, sdkRoot: string, platform: P
     }
 
     if (!options.s) {
-      // if device id not found, or invalid device id is found, then prompt the user 
+      // if device id not found, or invalid device id is found, then prompt the user
       // to select a device from the list of running devices.
       const deviceAnswer = await inquirer.prompt({
         type: 'list',
@@ -396,7 +429,7 @@ export async function installApk (options: Options, sdkRoot: string, platform: P
         choices: devices.map(device => device.udid)
       });
       options.s = deviceAnswer.device;
-     
+
       Logger.log();
     }
 
@@ -417,7 +450,7 @@ export async function installApk (options: Options, sdkRoot: string, platform: P
 
     if (!existsSync(options.path)) {
       Logger.log(`${colors.red('APK file not found!')} Please provide a valid path to the APK file.\n`);
-      
+
       return false;
     }
 
@@ -432,7 +465,7 @@ export async function installApk (options: Options, sdkRoot: string, platform: P
   }
 }
 
-export async function deleteApk (options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
+export async function deleteApk(options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
   const adbLocation = getBinaryLocation(sdkRoot, platform, 'adb', true);
   if (!adbLocation) {
     Logger.log(`${colors.red('ADB not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
@@ -454,7 +487,7 @@ export async function deleteApk (options: Options, sdkRoot: string, platform: Pl
   }
 
   if (options.s && devices.length > 1) {
-    // If device id is passed and there are multiple devices connected then 
+    // If device id is passed and there are multiple devices connected then
     // check if the id is valid. If not then prompt user to select a device.
     const device = devices.find(device => device.udid === options.s);
     if (!device) {
@@ -465,7 +498,7 @@ export async function deleteApk (options: Options, sdkRoot: string, platform: Pl
   }
 
   if (!options.s) {
-    // if device id not found, or invalid device id is found, then prompt the user 
+    // if device id not found, or invalid device id is found, then prompt the user
     // to select a device from the list of running devices.
     const deviceAnswer = await inquirer.prompt({
       type: 'list',
@@ -474,18 +507,18 @@ export async function deleteApk (options: Options, sdkRoot: string, platform: Pl
       choices: devices.map(device => device.udid)
     });
     options.s = deviceAnswer.device;
-   
+
     Logger.log();
   }
 
   const appNameAnswer = await inquirer.prompt({
     type: 'input',
     name: 'appName',
-    message: 'Enter the name of the APK to uninstall:',
+    message: 'Enter the name of the APK to uninstall:'
   });
 
   Logger.log();
-  
+
   const packageNames = execBinarySync(adbLocation, 'adb', platform, `-s ${options.s} shell pm list packages '${appNameAnswer.appName}'`);
   if (!packageNames) {
     Logger.log(`${colors.red('APK not found!')} Please try again.`);
@@ -499,7 +532,7 @@ export async function deleteApk (options: Options, sdkRoot: string, platform: Pl
     if (line.includes('package:')) {
       packagesList.push(line.split(':')[1].trim());
     }
-  })
+  });
 
   let packageName = packagesList[0];
 
@@ -510,7 +543,7 @@ export async function deleteApk (options: Options, sdkRoot: string, platform: Pl
       message: 'Select the package you want to uninstall:',
       choices: packagesList
     });
-    
+
     packageName = packageNameAnswer.packageName;
     Logger.log();
   }
@@ -526,6 +559,7 @@ export async function deleteApk (options: Options, sdkRoot: string, platform: Pl
 
   if (confirmUninstallationAnswer.confirm === 'No') {
     Logger.log('Uninstallation cancelled.');
+
     return false;
   }
 
@@ -536,9 +570,9 @@ export async function deleteApk (options: Options, sdkRoot: string, platform: Pl
   return true;
 }
 
-export async function createAvd (sdkRoot: string, platform: Platform): Promise<boolean> {
+export async function createAvd(sdkRoot: string, platform: Platform): Promise<boolean> {
   const avdmanagerLocation = getBinaryLocation(sdkRoot, platform, 'avdmanager', true);
-  const sdkmanagerLocation = getBinaryLocation(sdkRoot, platform, 'sdkmanager', true); 
+  const sdkmanagerLocation = getBinaryLocation(sdkRoot, platform, 'sdkmanager', true);
 
   if (!avdmanagerLocation) {
     Logger.log(`${colors.red('avdmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
@@ -554,8 +588,8 @@ export async function createAvd (sdkRoot: string, platform: Platform): Promise<b
 
   const installedAvds = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd -c');
   if (!installedAvds) {
-    Logger.log(`${colors.yellow('Failed to fetch installed AVDs.')} Please try again.`)
-  
+    Logger.log(`${colors.yellow('Failed to fetch installed AVDs.')} Please try again.`);
+
     return false;
   }
 
@@ -578,7 +612,7 @@ export async function createAvd (sdkRoot: string, platform: Platform): Promise<b
       choices: ['Yes', 'No']
     });
 
-    if (overwriteAnswer.overwrite === 'No') {   
+    if (overwriteAnswer.overwrite === 'No') {
       return false;
     }
     Logger.log();
@@ -657,7 +691,7 @@ export async function createAvd (sdkRoot: string, platform: Platform): Promise<b
   return true;
 }
 
-export async function deleteAvd (sdkRoot: string, platform: Platform): Promise<boolean> {
+export async function deleteAvd(sdkRoot: string, platform: Platform): Promise<boolean> {
   const avdmanagerLocation = getBinaryLocation(sdkRoot, platform, 'avdmanager', true);
   if (!avdmanagerLocation) {
     Logger.log(`${colors.red('avdmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
@@ -667,8 +701,8 @@ export async function deleteAvd (sdkRoot: string, platform: Platform): Promise<b
 
   const installedAvds = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd -c');
   if (!installedAvds) {
-    Logger.log(`${colors.yellow('Failed to fetch installed AVDs.')} Please try again.`)
-  
+    Logger.log(`${colors.yellow('Failed to fetch installed AVDs.')} Please try again.`);
+
     return false;
   }
 
@@ -698,7 +732,7 @@ export async function deleteAvd (sdkRoot: string, platform: Platform): Promise<b
   return true;
 }
 
-async function getInstalledSystemImages (sdkmanagerLocation: string, platform: Platform): Promise<string[]> {
+async function getInstalledSystemImages(sdkmanagerLocation: string, platform: Platform): Promise<string[]> {
   const stdout = execBinarySync(sdkmanagerLocation, 'sdkmanager', platform, '--list');
 
   if (!stdout) {
@@ -741,6 +775,7 @@ export async function defaultInstallFlow(sdkRoot: string, platform: Platform) {
       return await createAvd(sdkRoot, platform);
     default:
       Logger.log('Invalid option selected.');
+
       return false;
   }
 }

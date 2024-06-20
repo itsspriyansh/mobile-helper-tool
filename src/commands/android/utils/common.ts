@@ -9,7 +9,7 @@ import which from 'which';
 
 import {symbols} from '../../../utils';
 import {ABI, AVAILABLE_OPTIONS, AVAILABLE_SUBCOMMANDS, DEFAULT_CHROME_VERSIONS, DEFAULT_FIREFOX_VERSION, SDK_BINARY_LOCATIONS} from '../constants';
-import { Platform, SdkBinary} from '../interfaces';
+import {Platform, SdkBinary} from '../interfaces';
 import Logger from '../../../logger';
 import untildify from 'untildify';
 
@@ -190,7 +190,7 @@ export function getSdkRootFromEnv(androidHomeInGlobalEnv: boolean, rootDir: stri
   return '';
 }
 
-export function showHelp(unknownOptions: string[], unknownSubcommand?: string ) {
+export function showHelp(unknownOptions: string[], unknownSubcommand?: string) {
   if (unknownSubcommand) {
     Logger.log(colors.red(`unknown subcommand passed: ${unknownSubcommand}\n`));
   } else if (unknownOptions.length) {
@@ -242,7 +242,7 @@ export function showHelp(unknownOptions: string[], unknownSubcommand?: string ) 
   Object.keys(AVAILABLE_SUBCOMMANDS).forEach(subcommand => {
     const subcmd = AVAILABLE_SUBCOMMANDS[subcommand];
     const subcmdOptions = subcmd.options?.map(option => `[--${option.name}]`).join(' ') || '';
-    
+
     Logger.log(`  ${colors.cyan(subcommand)} ${subcmdOptions}`);
     Logger.log(`  ${colors.gray(subcmd.description)}`);
 
