@@ -102,11 +102,11 @@ export async function connectWirelessAdb(sdkRoot: string, platform: Platform): P
 
 export async function connectAvd (sdkRoot: string, platform: Platform): Promise<boolean> {
   const avdmanagerLocation = getBinaryLocation(sdkRoot, platform, 'avdmanager', true);
-  const availableAVDsDetails = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd');
 
-  if (availableAVDsDetails) {
-    Logger.log('Available AVDs:');
-    Logger.log(availableAVDsDetails);
+  if (!avdmanagerLocation) {
+    Logger.log(`${colors.red('avdmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
+    
+    return false;
   }
 
   const availableAVDs = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd -c');
@@ -120,6 +120,7 @@ export async function connectAvd (sdkRoot: string, platform: Platform): Promise<
     });
     const avdName = avdAnswer.avdName;
 
+    Logger.log();
     Logger.log(`Connecting to ${avdName}...`);
     const connectingAvd = await launchAVD(sdkRoot, platform, avdName);
 
@@ -431,6 +432,110 @@ export async function installApk (options: Options, sdkRoot: string, platform: P
   }
 }
 
+export async function deleteApk (options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
+  const adbLocation = getBinaryLocation(sdkRoot, platform, 'adb', true);
+  if (!adbLocation) {
+    Logger.log(`${colors.red('ADB not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
+
+    return false;
+  }
+
+  const adb = await ADB.createADB({allowOfflineDevices: true});
+  const devices = await adb.getConnectedDevices();
+
+  if (devices.length === 0) {
+    Logger.log(`${colors.red('No device found running.')} Please connect a device to install the APK.`);
+    Logger.log(`Use ${colors.cyan('npx @nightwatch/mobile-helper android connect')} to connect to a device.\n`);
+
+    return true;
+  } else if (devices.length === 1) {
+    // if only one device is connected, then set that device's id to options.s
+    options.s = devices[0].udid;
+  }
+
+  if (options.s && devices.length > 1) {
+    // If device id is passed and there are multiple devices connected then 
+    // check if the id is valid. If not then prompt user to select a device.
+    const device = devices.find(device => device.udid === options.s);
+    if (!device) {
+      Logger.log(`${colors.yellow('Invalid device Id!')} Please select a valid running device.\n`);
+
+      options.s = '';
+    }
+  }
+
+  if (!options.s) {
+    // if device id not found, or invalid device id is found, then prompt the user 
+    // to select a device from the list of running devices.
+    const deviceAnswer = await inquirer.prompt({
+      type: 'list',
+      name: 'device',
+      message: 'Select the device to install the APK:',
+      choices: devices.map(device => device.udid)
+    });
+    options.s = deviceAnswer.device;
+   
+    Logger.log();
+  }
+
+  const appNameAnswer = await inquirer.prompt({
+    type: 'input',
+    name: 'appName',
+    message: 'Enter the name of the APK to uninstall:',
+  });
+
+  Logger.log();
+  
+  const packageNames = execBinarySync(adbLocation, 'adb', platform, `-s ${options.s} shell pm list packages '${appNameAnswer.appName}'`);
+  if (!packageNames) {
+    Logger.log(`${colors.red('APK not found!')} Please try again.`);
+
+    return false;
+  }
+
+  const packagesList: string[] = [];
+
+  packageNames.split('\n').forEach(line => {
+    if (line.includes('package:')) {
+      packagesList.push(line.split(':')[1].trim());
+    }
+  })
+
+  let packageName = packagesList[0];
+
+  if (packagesList.length > 1) {
+    const packageNameAnswer = await inquirer.prompt({
+      type: 'list',
+      name: 'packageName',
+      message: 'Select the package you want to uninstall:',
+      choices: packagesList
+    });
+    
+    packageName = packageNameAnswer.packageName;
+    Logger.log();
+  }
+
+  const confirmUninstallationAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'confirm',
+    message: `Are you sure you want to uninstall ${colors.cyan(packageName)}`,
+    choices: ['Yes', 'No']
+  });
+
+  Logger.log();
+
+  if (confirmUninstallationAnswer.confirm === 'No') {
+    Logger.log('Uninstallation cancelled.');
+    return false;
+  }
+
+  Logger.log(`Uninstalling ${colors.cyan(packageName)}...\n`);
+
+  execBinarySync(adbLocation, 'adb', platform, `-s ${options.s} uninstall ${packageName}`);
+
+  return true;
+}
+
 export async function createAvd (sdkRoot: string, platform: Platform): Promise<boolean> {
   const avdmanagerLocation = getBinaryLocation(sdkRoot, platform, 'avdmanager', true);
   const sdkmanagerLocation = getBinaryLocation(sdkRoot, platform, 'sdkmanager', true); 
@@ -488,32 +593,52 @@ export async function createAvd (sdkRoot: string, platform: Platform): Promise<b
   const systemImageAnswer = await inquirer.prompt({
     type: 'list',
     name: 'systemImage',
-    message: 'Select the system image to be used for AVD:',
+    message: 'Select the system image to use for AVD:',
     choices: installedSystemImages
   });
   const systemImage = systemImageAnswer.systemImage;
 
   Logger.log();
 
-  const availableDevices = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list devices -c');
+  const deviceTypeAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'deviceType',
+    message: 'Select the device type for AVD:',
+    choices: ['Nexus', 'Pixel', 'Wear OS', 'Android TV', 'Desktop', 'Others']
+  });
+  const deviceType = deviceTypeAnswer.deviceType;
+
+  const deviceTypesToGrepCommand: {[key: string]: string} = {
+    'Nexus': 'nexus',
+    'Pixel': 'pixel',
+    'Wear OS': 'wear',
+    'Android TV': 'tv',
+    'Desktop': 'desktop',
+    'Others': '-Ev "wear|Nexus|pixel|tv|desktop"'
+  };
+
+  Logger.log();
+
+  const availableDevices = execBinarySync(avdmanagerLocation, 'avdmanager', platform, `list devices -c | grep ${deviceTypesToGrepCommand[deviceType]}`);
 
   if (!availableDevices) {
     Logger.log(`${colors.red('No devices found!')} Please try again.`);
 
     return false;
   }
+  const availableDevicesList = availableDevices.split('\n').filter(device => device !== '');
 
   const deviceAnswer = await inquirer.prompt({
     type: 'list',
     name: 'device',
     message: 'Select the device profile for AVD:',
-    choices: [...availableDevices.split('\n').filter(device => device !== ''), 'default']
+    choices: availableDevicesList
   });
   const device = deviceAnswer.device;
 
   Logger.log();
 
-  execBinarySync(avdmanagerLocation, 'avdmanager', platform, `create avd --name '${avdName}' --package '${systemImage}' ${device==='default' ? '' : `--device '${device}'`} --force`);
+  execBinarySync(avdmanagerLocation, 'avdmanager', platform, `create avd --name '${avdName}' --package '${systemImage}' --device '${device}' --force`);
 
   const installedAvdsAfterCreate = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd -c');
 
@@ -528,6 +653,47 @@ export async function createAvd (sdkRoot: string, platform: Platform): Promise<b
   }
 
   Logger.log(`${colors.green('AVD created successfully!')}`);
+
+  return true;
+}
+
+export async function deleteAvd (sdkRoot: string, platform: Platform): Promise<boolean> {
+  const avdmanagerLocation = getBinaryLocation(sdkRoot, platform, 'avdmanager', true);
+  if (!avdmanagerLocation) {
+    Logger.log(`${colors.red('avdmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
+
+    return false;
+  }
+
+  const installedAvds = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd -c');
+  if (!installedAvds) {
+    Logger.log(`${colors.yellow('Failed to fetch installed AVDs.')} Please try again.`)
+  
+    return false;
+  }
+
+  const avdAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'avdName',
+    message: 'Select the AVD to delete:',
+    choices: installedAvds.split('\n').filter(avd => avd !== '')
+  });
+  const avdName = avdAnswer.avdName;
+
+  Logger.log();
+  Logger.log(`Deleting ${colors.cyan(avdName)}...\n`);
+
+  execBinarySync(avdmanagerLocation, 'avdmanager', platform, `delete avd --name '${avdName}'`);
+
+  const installedAvdsAfterDelete = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd -c');
+
+  if (installedAvdsAfterDelete?.includes(avdName)) {
+    Logger.log(`${colors.red('Failed to delete AVD!')} Please try again.`);
+
+    return false;
+  }
+
+  Logger.log(`${colors.green('AVD deleted successfully!')}`);
 
   return true;
 }
@@ -578,3 +744,4 @@ export async function defaultInstallFlow(sdkRoot: string, platform: Platform) {
       return false;
   }
 }
+

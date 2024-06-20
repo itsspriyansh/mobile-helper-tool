@@ -71,11 +71,19 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
     ]
   },
   uninstall: {
-    description: 'Uninstall system images for Android Virtual Device',
+    description: 'Uninstall system images, AVDs or APKs from a device.',
     options: [
       {
         name: "system-image",
         description: "Uninstall a currently installed system image from the device."
+      },
+      {
+        name: "avd",
+        description: "Delete an Android Virtual Device"
+      },
+      {
+        name: "app",
+        description: "Uninstall an APK from a device."
       }
     ]
   }

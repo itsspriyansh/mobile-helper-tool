@@ -11,6 +11,8 @@ import {
   createAvd,
   defaultConnectFlow,
   defaultInstallFlow,
+  deleteApk,
+  deleteAvd,
   deleteSystemImage,
   disconnectDevice,
   getSystemImages,
@@ -121,6 +123,12 @@ export class SdkCommandExecute {
       if (this.options['system-image']) {
         // execute script for uninstalling system image from AVD.
         return await deleteSystemImage(this.sdkRoot, this.platform);
+      } else if (this.options.avd) {
+        // execute script for deleting an AVD.
+        return await deleteAvd(this.sdkRoot, this.platform);
+      } else if (this.options.app) {
+        // execute script for uninstalling an APK from the device.
+        return await deleteApk(this.options, this.sdkRoot, this.platform);
       }
     }
 
