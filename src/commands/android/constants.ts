@@ -28,7 +28,7 @@ export const AVAILABLE_OPTIONS: AvailableOptions = {
   standalone: {
     alias: [],
     description: 'Do standalone setup for Android Emulator (no Nightwatch-related requirements will be downloaded).'
-  },
+  }
 };
 
 export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
@@ -36,16 +36,16 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
     description: 'Connect to a device',
     options: [
       {
-        name: "wireless",
-        description: "Connect a real device wirelessly",
+        name: 'wireless',
+        description: 'Connect a real device wirelessly'
       },
       {
-        name: "avd",
-        description: "Connect to an Android Virtual Device",
+        name: 'avd',
+        description: 'Connect to an Android Virtual Device'
       },
       {
-        name: "list",
-        description: "List all connected devices",
+        name: 'list',
+        description: 'List all connected devices'
       }
     ]
   },
@@ -57,16 +57,16 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
     description: 'Install system images for Android Virtual Device',
     options: [
       {
-        name: "system-image",
-        description: "Install system image for Android Virtual Device"
+        name: 'system-image',
+        description: 'Install system image for Android Virtual Device'
       },
       {
-        name: "avd",
-        description: "Create an Android Virtual Device"
+        name: 'avd',
+        description: 'Create an Android Virtual Device'
       },
       {
-        name: "app",
-        description: "Install an APK on the device."
+        name: 'app',
+        description: 'Install an APK on the device.'
       }
     ]
   },
@@ -74,20 +74,20 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
     description: 'Uninstall system images, AVDs or APKs from a device.',
     options: [
       {
-        name: "system-image",
-        description: "Uninstall a currently installed system image from the device."
+        name: 'system-image',
+        description: 'Uninstall a currently installed system image from the device.'
       },
       {
-        name: "avd",
-        description: "Delete an Android Virtual Device"
+        name: 'avd',
+        description: 'Delete an Android Virtual Device'
       },
       {
-        name: "app",
-        description: "Uninstall an APK from a device."
+        name: 'app',
+        description: 'Uninstall an APK from a device.'
       }
     ]
   }
-}
+};
 
 export const NIGHTWATCH_AVD = 'nightwatch-android-11';
 export const DEFAULT_FIREFOX_VERSION = '105.1.0';
@@ -154,103 +154,103 @@ export const BINARY_TO_PACKAGE_NAME: Record<SdkBinary | typeof NIGHTWATCH_AVD, s
 
 export const APILevelNames: ApiLevelNames = {
   'android-10': {
-      version: '2.3.3-2.3.7',
-      name: 'Gingerbread'
+    version: '2.3.3-2.3.7',
+    name: 'Gingerbread'
   },
   'android-11': {
-      version: '3.0',
-      name: 'Honeycomb'
+    version: '3.0',
+    name: 'Honeycomb'
   },
   'android-12': {
-      version: '3.1',
-      name: 'Honeycomb'
+    version: '3.1',
+    name: 'Honeycomb'
   },
   'android-13': {
-      version: '3.2',
-      name: 'Honeycomb'
+    version: '3.2',
+    name: 'Honeycomb'
   },
   'android-14': {
-      version: '4.0.1-4.0.2',
-      name: 'Ice Cream Sandwich'
+    version: '4.0.1-4.0.2',
+    name: 'Ice Cream Sandwich'
   },
   'android-15': {
-      version: '4.0.3-4.0.4',
-      name: 'Ice Cream Sandwich'
+    version: '4.0.3-4.0.4',
+    name: 'Ice Cream Sandwich'
   },
   'android-16': {
-      version: '4.1.x',
-      name: 'Jelly Bean'
+    version: '4.1.x',
+    name: 'Jelly Bean'
   },
   'android-17': {
-      version: '4.2.x',
-      name: 'Jelly Bean'
+    version: '4.2.x',
+    name: 'Jelly Bean'
   },
   'android-18': {
-      version: '4.3.x',
-      name: 'Jelly Bean'
+    version: '4.3.x',
+    name: 'Jelly Bean'
   },
   'android-19': {
-      version: '4.4-4.4.4',
-      name: 'KitKat'
+    version: '4.4-4.4.4',
+    name: 'KitKat'
   },
   'android-20': {
-      version: '4.4W',
-      name: 'KitKat Wear'
+    version: '4.4W',
+    name: 'KitKat Wear'
   },
   'android-21': {
-      version: '5.0',
-      name: 'Lollipop'
+    version: '5.0',
+    name: 'Lollipop'
   },
   'android-22': {
-      version: '5.1',
-      name: 'Lollipop'
+    version: '5.1',
+    name: 'Lollipop'
   },
   'android-23': {
-      version: '6.0',
-      name: 'Marshmallow'
+    version: '6.0',
+    name: 'Marshmallow'
   },
   'android-24': {
-      version: '7.0',
-      name: 'Nougat'
+    version: '7.0',
+    name: 'Nougat'
   },
   'android-25': {
-      version: '7.1',
-      name: 'Nougat'
+    version: '7.1',
+    name: 'Nougat'
   },
   'android-26': {
-      version: '8.0',
-      name: 'Oreo'
+    version: '8.0',
+    name: 'Oreo'
   },
   'android-27': {
-      version: '8.1',
-      name: 'Oreo'
+    version: '8.1',
+    name: 'Oreo'
   },
   'android-28': {
-      version: '9.0',
-      name: 'Pie'
+    version: '9.0',
+    name: 'Pie'
   },
   'android-29': {
-      version: '10',
-      name: 'Android 10'
+    version: '10',
+    name: 'Android 10'
   },
   'android-30': {
-      version: '11',
-      name: 'Android 11'
+    version: '11',
+    name: 'Android 11'
   },
   'android-31': {
-      version: '12',
-      name: 'Android 12'
+    version: '12',
+    name: 'Android 12'
   },
   'android-32': {
-      version: '12L',
-      name: 'Android 12L'
+    version: '12L',
+    name: 'Android 12L'
   },
   'android-33': {
-      version: '13',
-      name: 'Android 13'
+    version: '13',
+    name: 'Android 13'
   },
   'android-34': {
-      version: '14',
-      name: 'Android 14'
+    version: '14',
+    name: 'Android 14'
   }
 };

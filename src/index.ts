@@ -4,7 +4,7 @@ import minimist from 'minimist';
 import {AndroidSetup} from './commands/android';
 import {IosSetup} from './commands/ios';
 import {AVAILABLE_COMMANDS} from './constants';
-import { SdkCommandExecute } from './commands/android/execute-sdk-commands';
+import {AndroidSubcommand} from './commands/android/subcommands';
 
 export const run = () => {
   try {
@@ -16,7 +16,7 @@ export const run = () => {
         mode: 'm',
         browsers: ['b', 'browser'],
         setup: ['install', 'i'],
-        path: 'p',
+        path: 'p'
       }
     });
 
@@ -24,8 +24,8 @@ export const run = () => {
       showHelp(args, options.help);
     } else if (args[0] === 'android') {
       if (args[1]) {
-        const sdkCommandExecute = new SdkCommandExecute(args[1], options);
-        sdkCommandExecute.run();
+        const androidSubcommand = new AndroidSubcommand(args[1], options);
+        androidSubcommand.run();
       } else {
         const androidSetup = new AndroidSetup(options, args[1]);
         androidSetup.run();
