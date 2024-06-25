@@ -45,7 +45,9 @@ export class AndroidSubcommand {
     const sdkRootEnv = getSdkRootFromEnv(this.androidHomeInGlobalEnv, this.rootDir);
 
     if (!sdkRootEnv) {
-      Logger.log(`Use ${colors.magenta('--standalone')} flag with the main command to setup the Android SDK.`);
+      Logger.log(`Run: ${colors.cyan('npx @nightwatch/mobile-helper android --standalone')} to setup Android SDK`);
+      Logger.log('     or provide the path to Android SDK if already installed.');
+      Logger.log(`(Remove the ${colors.gray('--standalone')} flag from the above command if setting up for testing.)\n`);
 
       return false;
     }

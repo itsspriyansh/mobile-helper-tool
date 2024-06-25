@@ -1,15 +1,20 @@
 import inquirer from 'inquirer';
-import colors from 'ansi-colors';
 
 import Logger from '../../../../logger';
-import {AVAILABLE_SUBCOMMANDS} from '../../constants';
 import {Options, Platform} from '../../interfaces';
 import {connectAvd} from './avd';
 import {listRunningDevices} from './list';
 import {connectWirelessAdb} from './wireless';
+import {verifyOptions} from '../common';
 
 export async function connect(options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
-  await verifyOptions(options);
+  const optionsVerified = verifyOptions('connect', options);
+
+  if (!optionsVerified) {
+    return false;
+  } else if (typeof optionsVerified !== 'boolean') {
+    await optionsPrompt(options);
+  }
 
   if (options.wireless) {
     return await connectWirelessAdb(sdkRoot, platform);
@@ -22,33 +27,20 @@ export async function connect(options: Options, sdkRoot: string, platform: Platf
   return false;
 }
 
-async function verifyOptions(options: Options): Promise<boolean> {
-  const availableOptions = AVAILABLE_SUBCOMMANDS['connect'].options.map(option => option.name);
-  const optionsPassed = availableOptions.filter(option => options[option] === true);
+async function optionsPrompt(options: Options) {
+  const connectOptionAnswer = await inquirer.prompt({
+    type: 'list',
+    name: 'connectOption',
+    message: 'Select the type of device you want to connect:',
+    choices: ['Real Device', 'AVD']
+  });
 
-  if (optionsPassed.length > 1) {
-    Logger.log(colors.red('Too many options passed!'));
-
-    return false;
+  const connectOption = connectOptionAnswer.connectOption;
+  if (connectOption === 'Wireless ADB') {
+    options.wireless = true;
+  } else if (connectOption === 'AVD') {
+    options.avd = true;
   }
 
-  if (optionsPassed.length === 0) {
-    const connectOptionAnswer = await inquirer.prompt({
-      type: 'list',
-      name: 'connectOption',
-      message: 'Select the type of device to connect:',
-      choices: ['Real Device', 'AVD']
-    });
-
-    const connectOption = connectOptionAnswer.connectOption;
-    if (connectOption === 'Real Device') {
-      options.wireless = true;
-    } else if (connectOption === 'AVD') {
-      options.avd = true;
-    }
-
-    Logger.log();
-  }
-
-  return true;
+  Logger.log();
 }

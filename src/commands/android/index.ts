@@ -158,7 +158,7 @@ export class AndroidSetup {
       Logger.log(colors.red(`unknown option(s) passed: ${unknownOptions.join(', ')}\n`));
     }
 
-    Logger.log(`Usage: ${colors.cyan('npx @nightwatch/mobile-helper android [options] [subcommand] [subcommand-options]')}`);
+    Logger.log(`Usage: ${colors.cyan('npx @nightwatch/mobile-helper android [options]')}`);
     Logger.log('  Verify if all the requirements are met to run tests on an Android device/emulator.\n');
 
     Logger.log(`${colors.yellow('Options:')}`);

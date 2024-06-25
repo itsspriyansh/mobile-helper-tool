@@ -213,7 +213,8 @@ export const showSubcommandHelp = (unknownSubcommand?: string) => {
   if (unknownSubcommand) {
     Logger.log(`${colors.red('unknown subcommand passed:')} ${unknownSubcommand}\n`);
   }
-
+  Logger.log(`Usage: ${colors.cyan('npx @nightwatch/mobile-helper android [subcmd] [subcmd-options]')}`);
+  Logger.log('  The following subcommands are used for different operations on Android SDK:\n');
   Logger.log(`${colors.yellow('Subcommands and Subcommand-Options:')}`);
 
   const longest = (xs: string[]) => Math.max.apply(null, xs.map(x => x.length));

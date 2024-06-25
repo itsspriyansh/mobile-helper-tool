@@ -78,6 +78,8 @@ export async function installApp(options: Options, sdkRoot: string, platform: Pl
       return false;
     }
 
+    Logger.log('Installing APK...');
+
     execBinarySync(adbLocation, 'adb', platform, `-s ${options.s} install ${options.path}`);
 
     return true;
