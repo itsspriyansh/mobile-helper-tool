@@ -10,7 +10,7 @@ import {disconnect} from './disconnect';
 import {getPlatformName} from '../../../utils';
 import {Options, Platform} from '../interfaces';
 import {AVAILABLE_SUBCOMMANDS} from '../constants';
-import {checkJavaInstallation, getSdkRootFromEnv, showSubcommandHelp} from '../utils/common';
+import {checkJavaInstallation, getSdkRootFromEnv, getSubcommandHelp} from '../utils/common';
 
 export class AndroidSubcommand {
   sdkRoot: string;
@@ -31,7 +31,9 @@ export class AndroidSubcommand {
 
   async run(): Promise<boolean> {
     if (!Object.keys(AVAILABLE_SUBCOMMANDS).includes(this.subcommand)) {
-      showSubcommandHelp(this.subcommand);
+      const help = getSubcommandHelp();
+      Logger.log(`${colors.red('Unknown subcommand passed:')} ${this.subcommand}\n`);
+      Logger.log(help);
 
       return false;
     }
