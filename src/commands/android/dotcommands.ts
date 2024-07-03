@@ -33,7 +33,7 @@ export class AndroidDotCommand {
     }
 
     this.loadEnvFromDotEnv();
-    const sdkRootEnv = getSdkRootFromEnv(this.androidHomeInGlobalEnv, this.rootDir);
+    const sdkRootEnv = getSdkRootFromEnv(this.rootDir, this.androidHomeInGlobalEnv);
 
     if (!sdkRootEnv) {
       Logger.log(`Run: ${colors.cyan('npx @nightwatch/mobile-helper android --standalone')} to setup Android SDK`);

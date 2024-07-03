@@ -156,7 +156,7 @@ export const downloadFirefoxAndroid = async (version: string) => {
   return await downloadWithProgressBar(apkDownloadUrl, tempdir);
 };
 
-export const getSdkRootFromEnv = (androidHomeInGlobalEnv: boolean, rootDir: string): string => {
+export const getSdkRootFromEnv = (rootDir: string, androidHomeInGlobalEnv: boolean): string => {
   Logger.log('Checking the value of ANDROID_HOME environment variable...');
 
   const androidHome = process.env.ANDROID_HOME;
