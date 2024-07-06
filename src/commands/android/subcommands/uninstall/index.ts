@@ -8,12 +8,17 @@ import {deleteSystemImage} from './system-image';
 import {Options, Platform} from '../../interfaces';
 
 export async function uninstall(options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
-  const optionsVerified = verifyOptions('uninstall', options);
+  const optionsPassed = Object.keys(options).filter(option => options[option] === true);
 
-  if (!optionsVerified) {
-    return false;
-  } else if (typeof optionsVerified !== 'boolean') {
+  if (optionsPassed.length === 0) {
+    // if no option is passed then prompt the user to select one.
     await optionsPrompt(options);
+  } else {
+    // verify the options passed.
+    const optionsVerified = verifyOptions('uninstall', optionsPassed);
+    if (!optionsVerified) {
+      return false;
+    }
   }
 
   if (options.avd) {

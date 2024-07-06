@@ -1,7 +1,7 @@
 import colors from 'ansi-colors';
 
 import Logger from '../../../logger';
-import {Options, Platform} from '../interfaces';
+import {Platform} from '../interfaces';
 import {execBinarySync} from '../utils/sdk';
 import {AVAILABLE_SUBCOMMANDS} from '../constants';
 
@@ -28,11 +28,7 @@ export async function getInstalledSystemImages(sdkmanagerLocation: string, platf
   return installedImages;
 }
 
-function showHelp(subcommand: string, unknownOption?: string) {
-  if (unknownOption) {
-    Logger.log(`${colors.red(`unknown option passed: ${unknownOption}`)}`);
-  }
-
+function showHelp(subcommand: string) {
   const subcmd = AVAILABLE_SUBCOMMANDS[subcommand];
 
   Logger.log(`Usage: ${colors.cyan(`npx @nightwatch/mobile-helper android ${subcommand} [options]`)}`);
@@ -51,17 +47,13 @@ function showHelp(subcommand: string, unknownOption?: string) {
   }
 }
 
-export function verifyOptions(subcommand: string, options: Options): boolean | [] {
-  const optionsPassed = Object.keys(options).filter(option => options[option] === true);
-
-  if (optionsPassed.length === 0) {
-    return [];
-  } else if (optionsPassed.length > 1) {
-    Logger.log(`${colors.red('Too many options passed:')} ${optionsPassed.join(', ')}`);
+export function verifyOptions(subcommand: string, optionsPassed: string[]): boolean | [] {
+  if (optionsPassed.includes('help')) {
     showHelp(subcommand);
 
     return false;
-  } else if (options.help) {
+  } else if (optionsPassed.length > 1) {
+    Logger.log(`${colors.red('Too many options passed:')} ${optionsPassed.join(', ')}`);
     showHelp(subcommand);
 
     return false;
@@ -69,8 +61,11 @@ export function verifyOptions(subcommand: string, options: Options): boolean | [
 
   const availableOptions = AVAILABLE_SUBCOMMANDS[subcommand].options.map(option => option.name);
 
-  if (!availableOptions.includes(optionsPassed[0])) {
-    showHelp(subcommand, optionsPassed[0]);
+  const option = optionsPassed[0];
+
+  if (!availableOptions.includes(option)) {
+    Logger.log(`${colors.red(`unknown option passed: ${option}`)}`);
+    showHelp(subcommand);
 
     return false;
   }

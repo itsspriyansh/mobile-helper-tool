@@ -3,25 +3,27 @@ import inquirer from 'inquirer';
 import Logger from '../../../../logger';
 import {Options, Platform} from '../../interfaces';
 import {connectAvd} from './avd';
-import {listRunningDevices} from './list';
 import {connectWirelessAdb} from './wireless';
 import {verifyOptions} from '../common';
 
 export async function connect(options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
-  const optionsVerified = verifyOptions('connect', options);
+  const optionsPassed = Object.keys(options).filter(option => options[option] === true);
 
-  if (!optionsVerified) {
-    return false;
-  } else if (typeof optionsVerified !== 'boolean') {
+  if (optionsPassed.length === 0) {
+    // if no option is passed then prompt the user to select one.
     await optionsPrompt(options);
+  } else {
+    // verify the options passed.
+    const optionsVerified = verifyOptions('connect', optionsPassed);
+    if (!optionsVerified) {
+      return false;
+    }
   }
 
   if (options.wireless) {
     return await connectWirelessAdb(sdkRoot, platform);
   } else if (options.avd) {
     return await connectAvd(sdkRoot, platform);
-  } else if (options.list) {
-    return await listRunningDevices();
   }
 
   return false;
