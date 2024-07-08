@@ -40,8 +40,8 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
         description: 'Connect a real device wirelessly'
       },
       {
-        name: 'avd',
-        description: 'Connect to an Android Virtual Device'
+        name: 'emulator',
+        description: 'Connect to an Emulator Device'
       },
       {
         name: 'list',

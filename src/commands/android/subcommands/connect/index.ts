@@ -2,9 +2,9 @@ import inquirer from 'inquirer';
 
 import Logger from '../../../../logger';
 import {Options, Platform} from '../../interfaces';
-import {connectAvd} from './avd';
-import {connectWirelessAdb} from './wireless';
 import {verifyOptions} from '../common';
+import {connectAVD} from './emulator';
+import {connectWirelessAdb} from './wireless';
 
 export async function connect(options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
   const optionsPassed = Object.keys(options).filter(option => options[option] === true);
@@ -22,8 +22,8 @@ export async function connect(options: Options, sdkRoot: string, platform: Platf
 
   if (options.wireless) {
     return await connectWirelessAdb(sdkRoot, platform);
-  } else if (options.avd) {
-    return await connectAvd(sdkRoot, platform);
+  } else if (options.emulator) {
+    return await connectAVD(options, sdkRoot, platform);
   }
 
   return false;
@@ -41,7 +41,7 @@ async function optionsPrompt(options: Options) {
   if (connectOption === 'Wireless ADB') {
     options.wireless = true;
   } else if (connectOption === 'AVD') {
-    options.avd = true;
+    options.emulator = true;
   }
 
   Logger.log();
