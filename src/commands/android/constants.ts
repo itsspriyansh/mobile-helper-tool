@@ -37,53 +37,79 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
     options: [
       {
         name: 'wireless',
-        description: 'Connect a real device wirelessly'
+        description: 'Connect a real device wirelessly',
+        valuedOptions: []
       },
       {
         name: 'emulator',
-        description: 'Connect to an Emulator Device'
-      },
-      {
-        name: 'list',
-        description: 'List all connected devices'
+        description: 'Connect to an Emulator Device',
+        valuedOptions: [
+          {
+            name: 'avd',
+            alias: [],
+            description: 'Name of the AVD to connect to'
+          }
+        ]
       }
     ]
   },
   disconnect: {
     description: 'Disconnect an AVD or a real device',
-    options: []
+    options: [],
+    valuedOptions: [{
+      name: 'deviceId',
+      alias: ['s'],
+      description: 'Id of the device to disconnect to'
+    }]
   },
   install: {
     description: 'Install system images for Android Virtual Device',
     options: [
       {
         name: 'system-image',
-        description: 'Install system image for Android Virtual Device'
+        description: 'Install system image for Android Virtual Device',
+        valuedOptions: []
       },
       {
         name: 'avd',
-        description: 'Create an Android Virtual Device'
+        description: 'Create an Android Virtual Device',
+        valuedOptions: []
       },
       {
         name: 'app',
-        description: 'Install an APK on the device.'
+        description: 'Install an APK on the device',
+        valuedOptions: [
+          {
+            name: 'path',
+            alias: ['p'],
+            description: 'Path to the APK file'
+          },
+          {
+            name: 'deviceId',
+            alias: ['s'],
+            description: 'Id of the device to install the APK if multiple devices are connected'
+          }
+        ]
       }
     ]
   },
   uninstall: {
-    description: 'Uninstall system images, AVDs or APKs from a device.',
+    description: 'Uninstall system images, AVDs or APKs from a device',
     options: [
       {
         name: 'system-image',
-        description: 'Uninstall a currently installed system image from the device.'
+        description: 'Uninstall a currently installed system image from the device',
+        valuedOptions: []
       },
       {
         name: 'avd',
-        description: 'Delete an Android Virtual Device'
+        description: 'Delete an Android Virtual Device',
+        valuedOptions: []
       },
       {
         name: 'app',
-        description: 'Uninstall an APK from a device.'
+        description: 'Uninstall an APK from a device',
+        valuedOptions: []
       }
     ]
   }

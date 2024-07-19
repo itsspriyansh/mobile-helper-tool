@@ -18,7 +18,8 @@ export const run = () => {
         mode: 'm',
         browsers: ['b', 'browser'],
         setup: ['install', 'i'],
-        path: 'p'
+        path: 'p',
+        deviceId: 's'
       }
     });
 
