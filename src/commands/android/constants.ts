@@ -37,8 +37,7 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
     options: [
       {
         name: 'wireless',
-        description: 'Connect a real device wirelessly',
-        valuedOptions: []
+        description: 'Connect a real device wirelessly'
       },
       {
         name: 'emulator',
@@ -47,7 +46,8 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
           {
             name: 'avd',
             alias: [],
-            description: 'Name of the AVD to connect to'
+            description: 'Name of the AVD to connect to',
+            value: 'avd_name'
           }
         ]
       }
@@ -56,24 +56,25 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
   disconnect: {
     description: 'Disconnect an AVD or a real device',
     options: [],
-    valuedOptions: [{
-      name: 'deviceId',
-      alias: ['s'],
-      description: 'Id of the device to disconnect to'
-    }]
+    valuedOptions: [
+      {
+        name: 'deviceId',
+        alias: ['s'],
+        description: 'Id of the device to disconnect to',
+        value: 'device_id'
+      }
+    ]
   },
   install: {
     description: 'Install system images for Android Virtual Device',
     options: [
       {
         name: 'system-image',
-        description: 'Install system image for Android Virtual Device',
-        valuedOptions: []
+        description: 'Install system image for Android Virtual Device'
       },
       {
         name: 'avd',
-        description: 'Create an Android Virtual Device',
-        valuedOptions: []
+        description: 'Create an Android Virtual Device'
       },
       {
         name: 'app',
@@ -82,12 +83,14 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
           {
             name: 'path',
             alias: ['p'],
-            description: 'Path to the APK file'
+            description: 'Path to the APK file',
+            value: 'apk_path'
           },
           {
             name: 'deviceId',
             alias: ['s'],
-            description: 'Id of the device to install the APK if multiple devices are connected'
+            description: 'Id of the device to install the APK if multiple devices are connected',
+            value: 'device_id'
           }
         ]
       }
@@ -98,18 +101,15 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
     options: [
       {
         name: 'system-image',
-        description: 'Uninstall a currently installed system image from the device',
-        valuedOptions: []
+        description: 'Uninstall a currently installed system image from the device'
       },
       {
         name: 'avd',
-        description: 'Delete an Android Virtual Device',
-        valuedOptions: []
+        description: 'Delete an Android Virtual Device'
       },
       {
         name: 'app',
-        description: 'Uninstall an APK from a device',
-        valuedOptions: []
+        description: 'Uninstall an APK from a device'
       }
     ]
   }

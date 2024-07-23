@@ -212,7 +212,7 @@ export const checkJavaInstallation = (rootDir: string): boolean => {
 export const getSubcommandHelp = (): string => {
   let output = '';
 
-  output += `Usage: ${colors.cyan('npx @nightwatch/mobile-helper android [subcmd] [subcmd-options]')}\n`;
+  output += `Usage: ${colors.cyan('npx @nightwatch/mobile-helper android subcmd [subcmd-options]')}\n`;
   output += '  The following subcommands are used for different operations on Android SDK:\n\n';
   output += `${colors.yellow('Subcommands and Subcommand-Options:')}\n`;
 
@@ -222,15 +222,62 @@ export const getSubcommandHelp = (): string => {
     const subcmd = AVAILABLE_SUBCOMMANDS[subcommand];
     const subcmdOptions = subcmd.options?.map(option => `[--${option.name}]`).join(' ') || '';
 
-    output += `  ${colors.cyan(subcommand)} ${subcmdOptions}\n`;
+    // Display valued options for the subcommand along with the subcommand name.
+    let valuedFlags = '';
+    subcmd.valuedOptions?.forEach(valOption => {
+      const optionStr = `[--${valOption.name} ${valOption.value}] `;
+      valuedFlags += optionStr;
+    });
+
+    output += `  ${colors.cyan(subcommand)} ${subcmdOptions} ${valuedFlags}\n`;
     output += `  ${colors.gray(subcmd.description)}\n`;
 
+    if (subcmd.valuedOptions) {
+      const subcmdValuedOptionsWithAlias = subcmd.valuedOptions.map(valOption => {
+        const optionAlias = valOption.alias.map(alias => `-${alias}`).join(' |');
+
+        return `--${valOption.name}` + (optionAlias ? ` | ${optionAlias}` : '');
+      });
+
+      subcmd.valuedOptions.forEach((valOption, idx) => {
+        const optionPadding = new Array(Math.max(longest(subcmdValuedOptionsWithAlias) - subcmdValuedOptionsWithAlias[idx].length + 3, 0)).join('.');
+        output += `    ${subcmdValuedOptionsWithAlias[idx]} ${colors.grey(optionPadding)} ${colors.gray(valOption.description)}\n`;
+      });
+    }
+
+    // optionsWithValuedFlags is an array of strings that contains the
+    // option name along with the valued options in the same line.
+    // Example string: 'emulator --avd avd_name'
+    const optionsWithValuedFlags = subcmd.options.map((option) => {
+      valuedFlags = '';
+      option.valuedOptions?.forEach(valOption => {
+        const optionStr = `[--${valOption.name} ${valOption.value}] `;
+        valuedFlags += optionStr;
+      });
+
+      return option.name + ' ' + valuedFlags;
+    });
+
     if (subcmd.options && subcmd.options.length > 0) {
-      const optionLongest = longest(subcmd.options.map(option => `--${option.name}`));
-      subcmd.options.forEach(option => {
-        const optionStr = `--${option.name}`;
+      const optionLongest = longest(optionsWithValuedFlags.map(option => `--${option}`));
+
+      subcmd.options.forEach((option, idx) => {
+        const optionStr = `--${optionsWithValuedFlags[idx]}`;
         const optionPadding = new Array(Math.max(optionLongest - optionStr.length + 3, 0)).join('.');
         output += `    ${optionStr} ${colors.grey(optionPadding)} ${colors.gray(option.description)}\n`;
+
+        if (option.valuedOptions) {
+          const valuedOptionsWithAlias = option.valuedOptions.map(valOption => {
+            const optionAlias = valOption.alias.map(alias => `-${alias}`).join(' |');
+
+            return `--${valOption.name}` + (optionAlias ? ` | ${optionAlias}` : '');
+          });
+
+          option.valuedOptions.forEach((valOption, idx) => {
+            const optionPadding = new Array(Math.max(longest(valuedOptionsWithAlias) - valuedOptionsWithAlias[idx].length + 3, 0)).join('.');
+            output += `        ${valuedOptionsWithAlias[idx]} ${colors.grey(optionPadding)} ${colors.gray(valOption.description)}\n`;
+          });
+        }
       });
     }
     output += '\n';
@@ -238,3 +285,4 @@ export const getSubcommandHelp = (): string => {
 
   return output;
 };
+
