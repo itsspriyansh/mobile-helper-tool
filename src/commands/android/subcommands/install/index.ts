@@ -3,7 +3,6 @@ import inquirer from 'inquirer';
 import {createAvd} from './avd';
 import {installApp} from './app';
 import {verifyOptions} from '../common';
-import Logger from '../../../../logger';
 import {installSystemImage} from './system-image';
 import {Options, Platform} from '../../interfaces';
 
@@ -48,6 +47,4 @@ async function optionsPrompt(options: Options) {
   } else if (connectOption === 'APK') {
     options.app = true;
   }
-
-  Logger.log();
 }

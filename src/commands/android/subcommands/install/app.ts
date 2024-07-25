@@ -1,20 +1,61 @@
-import path from 'path';
-import {homedir} from 'os';
+import colors from 'ansi-colors';
 import ADB from 'appium-adb';
 import {existsSync} from 'fs';
 import inquirer from 'inquirer';
-import colors from 'ansi-colors';
+import {homedir} from 'os';
+import path from 'path';
 
 import Logger from '../../../../logger';
-import {execBinarySync} from '../../utils/sdk';
+import {symbols} from '../../../../utils';
 import {Options, Platform} from '../../interfaces';
-import {getBinaryLocation} from '../../utils/common';
+import {getBinaryLocation, getBinaryNameForOS} from '../../utils/common';
+import {exec} from 'child_process';
+// import {execBinarySync} from '../../utils/sdk';
+
+export const execBinaryAsync = (
+  binaryLocation: string,
+  binaryName: string,
+  platform: Platform,
+  args: string
+): Promise<string | null> => {
+  return new Promise((resolve, reject) => {
+    let cmd: string;
+    if (binaryLocation === 'PATH') {
+      const binaryFullName = getBinaryNameForOS(platform, binaryName);
+      cmd = `${binaryFullName} ${args}`;
+    } else {
+      const binaryFullName = path.basename(binaryLocation);
+      const binaryDirPath = path.dirname(binaryLocation);
+
+      if (platform === 'windows') {
+        cmd = `${binaryFullName} ${args}`;
+      } else {
+        cmd = `./${binaryFullName} ${args}`;
+      }
+
+      cmd = `cd ${binaryDirPath} && ${cmd}`;
+    }
+
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) {
+        console.log(
+          `  ${colors.red(symbols().fail)} Failed to run ${colors.cyan(cmd)}`
+        );
+        reject(stderr);
+      } else {
+        resolve(stdout.toString());
+      }
+    });
+  });
+};
 
 export async function installApp(options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
   try {
     const adbLocation = getBinaryLocation(sdkRoot, platform, 'adb', true);
     if (!adbLocation) {
-      Logger.log(`${colors.red('ADB not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
+      Logger.log(`  ${colors.red(symbols().fail)} ${colors.cyan('adb')} binary not found.\n`);
+      Logger.log(`Run: ${colors.cyan('npx @nightwatch/mobile-helper android --standalone')} to setup missing requirements.`);
+      Logger.log(`(Remove the ${colors.gray('--standalone')} flag from the above command if setting up for testing.)\n`);
 
       return false;
     }
@@ -22,28 +63,28 @@ export async function installApp(options: Options, sdkRoot: string, platform: Pl
     const adb = await ADB.createADB({allowOfflineDevices: true});
     const devices = await adb.getConnectedDevices();
 
-    if (devices.length === 0) {
+    if (!devices.length) {
       Logger.log(`${colors.red('No device found running.')} Please connect a device to install the APK.`);
       Logger.log(`Use ${colors.cyan('npx @nightwatch/mobile-helper android connect')} to connect to a device.\n`);
 
       return true;
     } else if (devices.length === 1) {
-      // if only one device is connected, then set that device's id to options.s
-      options.s = devices[0].udid;
+      // if only one device is connected, then set that device's id to options.deviceId
+      options.deviceId = devices[0].udid;
     }
 
-    if (options.s && devices.length > 1) {
+    if (options.deviceId && devices.length > 1) {
       // If device id is passed and there are multiple devices connected then
       // check if the id is valid. If not then prompt user to select a device.
-      const device = devices.find(device => device.udid === options.s);
-      if (!device) {
-        Logger.log(`${colors.yellow('Invalid device Id!')} Please select a valid running device.\n`);
+      const deviceConnected = devices.find(device => device.udid === options.deviceId);
+      if (!deviceConnected) {
+        Logger.log(`${colors.yellow('Invalid device Id passed!')}\n`);
 
-        options.s = '';
+        options.deviceId = '';
       }
     }
 
-    if (!options.s) {
+    if (!options.deviceId) {
       // if device id not found, or invalid device id is found, then prompt the user
       // to select a device from the list of running devices.
       const deviceAnswer = await inquirer.prompt({
@@ -52,9 +93,7 @@ export async function installApp(options: Options, sdkRoot: string, platform: Pl
         message: 'Select the device to install the APK:',
         choices: devices.map(device => device.udid)
       });
-      options.s = deviceAnswer.device;
-
-      Logger.log();
+      options.deviceId = deviceAnswer.device;
     }
 
     if (!options.path) {
@@ -65,7 +104,6 @@ export async function installApp(options: Options, sdkRoot: string, platform: Pl
         message: 'Enter the path to the APK file:'
       });
       options.path = apkPathAnswer.apkPath;
-
       Logger.log();
     }
 
@@ -80,9 +118,18 @@ export async function installApp(options: Options, sdkRoot: string, platform: Pl
 
     Logger.log('Installing APK...');
 
-    execBinarySync(adbLocation, 'adb', platform, `-s ${options.s} install ${options.path}`);
+    // const installationStatus = execBinarySync(adbLocation, 'adb', platform, `-s ${options.deviceId} install ${options.path}`);
+    const installationStatus = await execBinaryAsync(adbLocation, 'adb', platform, `-s ${options.deviceId} install ${options.path}`);
+    if (installationStatus?.includes('Success')) {
+      Logger.log(colors.green('APK installed successfully!\n'));
 
-    return true;
+      return true;
+    }
+
+    Logger.log(colors.red('Failed to install APK!'));
+    console.log(installationStatus);
+
+    return false;
   } catch (error) {
     Logger.log('Error occured while installing APK');
     console.error('Error:', error);
@@ -90,3 +137,4 @@ export async function installApp(options: Options, sdkRoot: string, platform: Pl
     return false;
   }
 }
+
