@@ -46,8 +46,7 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
           {
             name: 'avd',
             alias: [],
-            description: 'Name of the AVD to connect to',
-            value: 'avd_name'
+            description: 'Name of the AVD to connect to'
           }
         ]
       }
@@ -60,8 +59,7 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
       {
         name: 'deviceId',
         alias: ['s'],
-        description: 'Id of the device to disconnect to',
-        value: 'device_id'
+        description: 'Id of the device to disconnect to'
       }
     ]
   },
@@ -83,14 +81,12 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
           {
             name: 'path',
             alias: ['p'],
-            description: 'Path to the APK file',
-            value: 'apk_path'
+            description: 'Path to the APK file'
           },
           {
             name: 'deviceId',
             alias: ['s'],
-            description: 'Id of the device to install the APK if multiple devices are connected',
-            value: 'device_id'
+            description: 'Id of the device to install the APK if multiple devices are connected'
           }
         ]
       }

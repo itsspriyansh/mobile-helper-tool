@@ -68,7 +68,7 @@ export class AndroidSubcommand {
     if (this.subcommand === 'connect') {
       return await connect(this.options, this.sdkRoot, this.platform);
     } else if (this.subcommand === 'disconnect') {
-      return await disconnect(this.sdkRoot, this.platform);
+      return await disconnect(this.options, this.sdkRoot, this.platform);
     } else if (this.subcommand === 'install') {
       return await install(this.options, this.sdkRoot, this.platform);
     } else if (this.subcommand === 'uninstall') {

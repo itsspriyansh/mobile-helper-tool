@@ -19,7 +19,6 @@ export interface ValuedOptions {
   name: string,
   alias: string[],
   description: string,
-  value: string,
 }
 
 export interface Subcommand {
