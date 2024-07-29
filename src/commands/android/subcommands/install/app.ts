@@ -8,46 +8,8 @@ import path from 'path';
 import Logger from '../../../../logger';
 import {symbols} from '../../../../utils';
 import {Options, Platform} from '../../interfaces';
-import {getBinaryLocation, getBinaryNameForOS} from '../../utils/common';
-import {exec} from 'child_process';
-// import {execBinarySync} from '../../utils/sdk';
-
-export const execBinaryAsync = (
-  binaryLocation: string,
-  binaryName: string,
-  platform: Platform,
-  args: string
-): Promise<string | null> => {
-  return new Promise((resolve, reject) => {
-    let cmd: string;
-    if (binaryLocation === 'PATH') {
-      const binaryFullName = getBinaryNameForOS(platform, binaryName);
-      cmd = `${binaryFullName} ${args}`;
-    } else {
-      const binaryFullName = path.basename(binaryLocation);
-      const binaryDirPath = path.dirname(binaryLocation);
-
-      if (platform === 'windows') {
-        cmd = `${binaryFullName} ${args}`;
-      } else {
-        cmd = `./${binaryFullName} ${args}`;
-      }
-
-      cmd = `cd ${binaryDirPath} && ${cmd}`;
-    }
-
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) {
-        console.log(
-          `  ${colors.red(symbols().fail)} Failed to run ${colors.cyan(cmd)}`
-        );
-        reject(stderr);
-      } else {
-        resolve(stdout.toString());
-      }
-    });
-  });
-};
+import {getBinaryLocation} from '../../utils/common';
+import {execBinaryAsync} from '../../utils/sdk';
 
 export async function installApp(options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
   try {
@@ -107,9 +69,8 @@ export async function installApp(options: Options, sdkRoot: string, platform: Pl
       Logger.log();
     }
 
-    // convert to absolute path
-    options.path = path.resolve(homedir(), options.path as string);
 
+    options.path = path.resolve(homedir(), options.path as string);
     if (!existsSync(options.path)) {
       Logger.log(`${colors.red('APK file not found!')} Please provide a valid path to the APK file.\n`);
 
@@ -118,7 +79,6 @@ export async function installApp(options: Options, sdkRoot: string, platform: Pl
 
     Logger.log('Installing APK...');
 
-    // const installationStatus = execBinarySync(adbLocation, 'adb', platform, `-s ${options.deviceId} install ${options.path}`);
     const installationStatus = await execBinaryAsync(adbLocation, 'adb', platform, `-s ${options.deviceId} install ${options.path}`);
     if (installationStatus?.includes('Success')) {
       Logger.log(colors.green('APK installed successfully!\n'));
@@ -126,15 +86,26 @@ export async function installApp(options: Options, sdkRoot: string, platform: Pl
       return true;
     }
 
-    Logger.log(colors.red('Failed to install APK!'));
-    console.log(installationStatus);
+    handleError(installationStatus);
 
     return false;
-  } catch (error) {
-    Logger.log('Error occured while installing APK');
-    console.error('Error:', error);
+  } catch (err) {
+    handleError(err);
 
     return false;
   }
 }
+
+const handleError = (consoleOutput: any) => {
+  Logger.log(colors.red('Error occured while installing APK'));
+
+  let errorMessage = consoleOutput;
+  if (consoleOutput.includes('INSTALL_FAILED_ALREADY_EXISTS')) {
+    errorMessage = 'APK with the same package name already exists on the device.\n';
+  } else if (consoleOutput.includes('INSTALL_FAILED_OLDER_SDK')) {
+    errorMessage = 'Target installation location (AVD/Real device) has older SDK version than the minimum requirement of the APK.\n';
+  }
+
+  Logger.log(errorMessage);
+};
 

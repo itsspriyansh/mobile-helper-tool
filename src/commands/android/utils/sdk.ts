@@ -2,7 +2,7 @@ import colors from 'ansi-colors';
 import fs from 'fs';
 import path from 'path';
 import {homedir} from 'os';
-import {execSync} from 'child_process';
+import {exec, execSync} from 'child_process';
 
 import {copySync, rmDirSync, symbols} from '../../../utils';
 import {downloadWithProgressBar, getBinaryNameForOS} from './common';
@@ -185,6 +185,43 @@ export const execBinarySync = (
 
     return null;
   }
+};
+
+export const execBinaryAsync = (
+  binaryLocation: string,
+  binaryName: string,
+  platform: Platform,
+  args: string
+): Promise<string | null> => {
+  return new Promise((resolve, reject) => {
+    let cmd: string;
+    if (binaryLocation === 'PATH') {
+      const binaryFullName = getBinaryNameForOS(platform, binaryName);
+      cmd = `${binaryFullName} ${args}`;
+    } else {
+      const binaryFullName = path.basename(binaryLocation);
+      const binaryDirPath = path.dirname(binaryLocation);
+
+      if (platform === 'windows') {
+        cmd = `${binaryFullName} ${args}`;
+      } else {
+        cmd = `./${binaryFullName} ${args}`;
+      }
+
+      cmd = `cd ${binaryDirPath} && ${cmd}`;
+    }
+
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) {
+        console.log(
+          `  ${colors.red(symbols().fail)} Failed to run ${colors.cyan(cmd)}`
+        );
+        reject(stderr);
+      } else {
+        resolve(stdout.toString());
+      }
+    });
+  });
 };
 
 export const getBuildToolsAvailableVersions = (buildToolsPath: string): string[] => {
