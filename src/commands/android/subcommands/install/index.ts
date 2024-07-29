@@ -7,17 +7,12 @@ import {installSystemImage} from './system-image';
 import {Options, Platform} from '../../interfaces';
 
 export async function install(options: Options, sdkRoot: string, platform: Platform): Promise<boolean> {
-  const optionsPassed = Object.keys(options).filter(option => options[option] !== false);
-
-  if (optionsPassed.length === 0) {
-    // if no option is passed then prompt the user to select one.
+  const verifyOptionsResult = verifyOptions('install', options);
+  if (!verifyOptionsResult) {
+    return false;
+  } else if (!verifyOptionsResult.mainOption) {
+    // if no main option is passed then prompt the user to select one.
     await optionsPrompt(options);
-  } else {
-    // verify the options passed.
-    const optionsVerified = verifyOptions('install', options);
-    if (!optionsVerified) {
-      return false;
-    }
   }
 
   if (options.avd) {

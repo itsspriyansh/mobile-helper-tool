@@ -42,7 +42,7 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
       {
         name: 'emulator',
         description: 'Connect to an Emulator Device',
-        valuedOptions: [
+        flags: [
           {
             name: 'avd',
             alias: [],
@@ -55,7 +55,7 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
   disconnect: {
     description: 'Disconnect an AVD or a real device',
     options: [],
-    valuedOptions: [
+    flags: [
       {
         name: 'deviceId',
         alias: ['s'],
@@ -77,7 +77,7 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
       {
         name: 'app',
         description: 'Install an APK on the device',
-        valuedOptions: [
+        flags: [
           {
             name: 'path',
             alias: ['p'],
