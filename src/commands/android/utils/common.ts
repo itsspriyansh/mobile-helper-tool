@@ -219,32 +219,32 @@ export const getSubcommandHelp = (): string => {
   Object.keys(AVAILABLE_SUBCOMMANDS).forEach(subcommand => {
     const subcmd = AVAILABLE_SUBCOMMANDS[subcommand];
     const subcmdOptions = subcmd.options?.map(option => `[--${option.name}]`).join(' ') || '';
-    const subcmdValuedOptions = generateValuedFlagsString(subcmd.flags);
+    const subcmdFlags = generateFlagsString(subcmd.flags);
 
-    // A subcommand will have boolean options to facilitate multiple workflows.
-    // If a subcommand has single workflow, then it won't have boolean options but might
-    // have valued options.
+    // A subcommand will have main options to facilitate multiple workflows.
+    // If a subcommand has single workflow, then it won't have main options but might
+    // have flags with string values.
 
-    // Display the subcommand name along with boolean options or valued options in the format:
+    // Display the subcommand name along with main options or flags in the format:
     // subcommand [--option1] [--option2] ...
     // OR
-    // subcommand [--valuedOption1 value] [--valuedOption2 value] ...
-    output += `  ${colors.cyan(subcommand)} ${subcmdOptions} ${subcmdValuedOptions}\n`;
+    // subcommand [--flag1 <flag1_value>] [--flag2 <flag2_value>] ...
+    output += `  ${colors.cyan(subcommand)} ${subcmdOptions} ${subcmdFlags}\n`;
     output += `  ${colors.gray(subcmd.description)}\n`;
 
-    // Display list of valued options for the subcommand along with description
+    // Display list of flags for the subcommand along with description
     if (subcmd.flags) {
-      // Generate a list of valued options with their aliases in the format:
-      // --valuedOption | -v1 | -v2 ...
-      const subcmdValuedOptionsWithAlias = getValuedOptionsWithAlias(subcmd.flags);
+      // Generate a list of flags with their aliases in the format:
+      // --flag | -f1 | -f2 ...
+      const subcmdFlagsWithAlias = getFlagsWithAlias(subcmd.flags);
 
       subcmd.flags.forEach((valOption, idx) => {
-        const optionPadding = generatePadding(subcmdValuedOptionsWithAlias, subcmdValuedOptionsWithAlias[idx].length);
-        output += `    ${subcmdValuedOptionsWithAlias[idx]} ${colors.grey(optionPadding)} ${colors.gray(valOption.description)}\n`;
+        const optionPadding = generatePadding(subcmdFlagsWithAlias, subcmdFlagsWithAlias[idx].length);
+        output += `    ${subcmdFlagsWithAlias[idx]} ${colors.grey(optionPadding)} ${colors.gray(valOption.description)}\n`;
       });
     }
 
-    // Display the list of boolean options for the subcommand along with description
+    // Display the list of main options for the subcommand along with description
     output += getSubcommandOptionsHelp(subcmd);
     output += '\n';
   });
@@ -256,28 +256,28 @@ export const getSubcommandOptionsHelp = (subcmd: Subcommand): string => {
   let output = '';
 
   if (subcmd.options && subcmd.options.length > 0) {
-    // Generate a list of options along with their valued flags in the format:
-    // --option [--valuedOption1 value] [--valuedOption2 value] ...
-    const optionsWithValuedFlags = subcmd.options.map((option) => {
-      const valuedFlags = generateValuedFlagsString(option.flags);
+    // Generate a list of options along with their flags in the format:
+    // --option [--flag1 <flag1_value>] [--flag2 <flag2_value>] ...
+    const optionsWithFlags = subcmd.options.map((option) => {
+      const flags = generateFlagsString(option.flags);
 
-      return option.name + ' ' + valuedFlags;
+      return option.name + ' ' + flags;
     });
 
     subcmd.options.forEach((option, idx) => {
-      const optionStr = `--${optionsWithValuedFlags[idx]}`;
-      const optionPadding = generatePadding(optionsWithValuedFlags, optionStr.length);
+      const optionStr = `--${optionsWithFlags[idx]}`;
+      const optionPadding = generatePadding(optionsWithFlags, optionStr.length);
 
       output += `    ${optionStr} ${colors.grey(optionPadding)} ${colors.gray(option.description)}\n`;
 
       if (option.flags) {
-        // Generate a list of valued options with their aliases in the format:
-        // --valuedOption | -v1 | -v2 ...
-        const valuedOptionsWithAlias = getValuedOptionsWithAlias(option.flags);
+        // Generate a list of flags with their aliases in the format:
+        // --flag | -f1 | -f2 ...
+        const flagsWithAlias = getFlagsWithAlias(option.flags);
 
         option.flags.forEach((valOption, idx) => {
-          const optionPadding = generatePadding(valuedOptionsWithAlias, valuedOptionsWithAlias[idx].length);
-          output += `        ${valuedOptionsWithAlias[idx]} ${colors.grey(optionPadding)} ${colors.gray(valOption.description)}\n`;
+          const optionPadding = generatePadding(flagsWithAlias, flagsWithAlias[idx].length);
+          output += `        ${flagsWithAlias[idx]} ${colors.grey(optionPadding)} ${colors.gray(valOption.description)}\n`;
         });
       }
     });
@@ -286,19 +286,19 @@ export const getSubcommandOptionsHelp = (subcmd: Subcommand): string => {
   return output;
 };
 
-const generateValuedFlagsString = (valuedOptions: Flag[] | undefined) => {
-  // Generate a string of valued flags in the format:
-  // [--valuedOption1 value] [--valuedOption2 value] ...
-  if (!valuedOptions) {
+const generateFlagsString = (flags: Flag[] | undefined) => {
+  // Generate a string of flags in the format:
+  // [--flag1 <flag1_value>] [--flag2 <flag2_value>] ...
+  if (!flags) {
     return '';
   }
 
-  let valuedFlagsStr = '';
-  valuedOptions.forEach(valOption => {
-    valuedFlagsStr += `[--${valOption.name} <${valOption.name}>] `;
+  let flagsStr = '';
+  flags.forEach(valOption => {
+    flagsStr += `[--${valOption.name} <${valOption.name}>] `;
   });
 
-  return valuedFlagsStr;
+  return flagsStr;
 };
 
 const generatePadding = (array: string[], length: number): string => {
@@ -308,13 +308,13 @@ const generatePadding = (array: string[], length: number): string => {
   return padding;
 };
 
-const getValuedOptionsWithAlias = (valuedOptions: Flag[]): string[] => {
-  const valuedOptionsWithAlias = valuedOptions.map(valOption => {
+const getFlagsWithAlias = (flags: Flag[]): string[] => {
+  const flagsWithAlias = flags.map(valOption => {
     const optionAlias = valOption.alias.map(alias => `-${alias}`).join(' |');
 
     return `--${valOption.name}` + (optionAlias ? ` | ${optionAlias}` : '');
   });
 
-  return valuedOptionsWithAlias;
+  return flagsWithAlias;
 };
 
