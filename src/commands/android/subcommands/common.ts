@@ -30,7 +30,7 @@ export async function getInstalledSystemImages(sdkmanagerLocation: string, platf
   return installedImages;
 }
 
-function showHelp(subcommand: string) {
+export function showHelp(subcommand: string) {
   const subcmd = AVAILABLE_SUBCOMMANDS[subcommand];
 
   Logger.log(`Usage: ${colors.cyan(`npx @nightwatch/mobile-helper android ${subcommand} [options]`)}\n`);

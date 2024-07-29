@@ -2,15 +2,16 @@ import path from 'path';
 import colors from 'ansi-colors';
 import * as dotenv from 'dotenv';
 
-import {connect} from './connect';
-import {install} from './install';
 import Logger from '../../../logger';
-import {uninstall} from './uninstall';
-import {disconnect} from './disconnect';
 import {getPlatformName} from '../../../utils';
-import {Options, Platform} from '../interfaces';
 import {AVAILABLE_SUBCOMMANDS} from '../constants';
+import {Options, Platform} from '../interfaces';
 import {checkJavaInstallation, getSdkRootFromEnv, getSubcommandHelp} from '../utils/common';
+import {showHelp} from './common';
+import {connect} from './connect';
+import {disconnect} from './disconnect';
+import {install} from './install';
+import {uninstall} from './uninstall';
 
 export class AndroidSubcommand {
   sdkRoot: string;
@@ -36,6 +37,12 @@ export class AndroidSubcommand {
       Logger.log(help);
 
       return false;
+    }
+
+    if (this.options.help) {
+      showHelp(this.subcommand);
+
+      return true;
     }
 
     const javaInstalled = checkJavaInstallation(this.rootDir);
@@ -78,3 +85,4 @@ export class AndroidSubcommand {
     return false;
   }
 }
+
