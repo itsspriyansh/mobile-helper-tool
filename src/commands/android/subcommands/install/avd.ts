@@ -2,31 +2,39 @@ import colors from 'ansi-colors';
 import inquirer from 'inquirer';
 
 import Logger from '../../../../logger';
+import {symbols} from '../../../../utils';
 import {Platform} from '../../interfaces';
-import {execBinarySync} from '../../utils/sdk';
-import {getInstalledSystemImages} from '../common';
 import {getBinaryLocation} from '../../utils/common';
+import {execBinaryAsync, execBinarySync} from '../../utils/sdk';
+import {getInstalledSystemImages} from '../common';
+
+type DeviceType = 'Nexus' | 'Pixel' | 'Wear OS' | 'Android TV' | 'Desktop' | 'Others';
+
+const deviceTypesToGrepCommand: Record<DeviceType, string> = {
+  'Nexus': 'Nexus',
+  'Pixel': 'pixel',
+  'Wear OS': 'wear',
+  'Android TV': 'tv',
+  'Desktop': 'desktop',
+  'Others': '-Ev "wear|Nexus|pixel|tv|desktop"'
+};
 
 export async function createAvd(sdkRoot: string, platform: Platform): Promise<boolean> {
   try {
     const avdmanagerLocation = getBinaryLocation(sdkRoot, platform, 'avdmanager', true);
-    const sdkmanagerLocation = getBinaryLocation(sdkRoot, platform, 'sdkmanager', true);
-
     if (!avdmanagerLocation) {
-      Logger.log(`${colors.red('avdmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
+      Logger.log(`  ${colors.red(symbols().fail)} ${colors.cyan('avdmanager')} binary not found.\n`);
+      Logger.log(`Run: ${colors.cyan('npx @nightwatch/mobile-helper android --standalone')} to setup missing requirements.`);
+      Logger.log(`(Remove the ${colors.gray('--standalone')} flag from the above command if setting up for testing.)\n`);
 
       return false;
     }
 
+    const sdkmanagerLocation = getBinaryLocation(sdkRoot, platform, 'sdkmanager', true);
     if (!sdkmanagerLocation) {
-      Logger.log(`${colors.red('sdkmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
-
-      return false;
-    }
-
-    const installedAvds = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd -c');
-    if (!installedAvds) {
-      Logger.log(`${colors.yellow('Failed to fetch installed AVDs.')} Please try again.`);
+      Logger.log(`  ${colors.red(symbols().fail)} ${colors.cyan('sdkmanager')} binary not found.\n`);
+      Logger.log(`Run: ${colors.cyan('npx @nightwatch/mobile-helper android --standalone')} to setup missing requirements.`);
+      Logger.log(`(Remove the ${colors.gray('--standalone')} flag from the above command if setting up for testing.)\n`);
 
       return false;
     }
@@ -38,27 +46,8 @@ export async function createAvd(sdkRoot: string, platform: Platform): Promise<bo
     });
     const avdName = avdNameAnswer.avdName;
 
-    Logger.log();
-
-    if (installedAvds.includes(avdName)) {
-      Logger.log(colors.yellow('AVD with the same name already exists!\n'));
-
-      const overwriteAnswer = await inquirer.prompt({
-        type: 'list',
-        name: 'overwrite',
-        message: 'Do you want to overwrite the existing AVD?',
-        choices: ['Yes', 'No']
-      });
-
-      if (overwriteAnswer.overwrite === 'No') {
-        return false;
-      }
-      Logger.log();
-    }
-
     const installedSystemImages: string[] = await getInstalledSystemImages(sdkmanagerLocation, platform);
-    if (installedSystemImages.length === 0) {
-
+    if (!installedSystemImages.length) {
       return false;
     }
 
@@ -70,28 +59,17 @@ export async function createAvd(sdkRoot: string, platform: Platform): Promise<bo
     });
     const systemImage = systemImageAnswer.systemImage;
 
-    Logger.log();
-
+    const deviceTypes: DeviceType[] = ['Nexus', 'Pixel', 'Wear OS', 'Android TV', 'Desktop', 'Others'];
     const deviceTypeAnswer = await inquirer.prompt({
       type: 'list',
       name: 'deviceType',
       message: 'Select the device type for AVD:',
-      choices: ['Nexus', 'Pixel', 'Wear OS', 'Android TV', 'Desktop', 'Others']
+      choices: deviceTypes
     });
     const deviceType = deviceTypeAnswer.deviceType;
 
-    const deviceTypesToGrepCommand: {[key: string]: string} = {
-      'Nexus': 'nexus',
-      'Pixel': 'pixel',
-      'Wear OS': 'wear',
-      'Android TV': 'tv',
-      'Desktop': 'desktop',
-      'Others': '-Ev "wear|Nexus|pixel|tv|desktop"'
-    };
-
-    Logger.log();
-
-    const availableDevices = execBinarySync(avdmanagerLocation, 'avdmanager', platform, `list devices -c | grep ${deviceTypesToGrepCommand[deviceType]}`);
+    let cmd = `list devices -c | grep ${deviceTypesToGrepCommand[deviceType as DeviceType]}`;
+    const availableDevices = execBinarySync(avdmanagerLocation, 'avdmanager', platform, cmd);
 
     if (!availableDevices) {
       Logger.log(`${colors.red('No devices found!')} Please try again.`);
@@ -99,7 +77,6 @@ export async function createAvd(sdkRoot: string, platform: Platform): Promise<bo
       return false;
     }
     const availableDevicesList = availableDevices.split('\n').filter(device => device !== '');
-
     const deviceAnswer = await inquirer.prompt({
       type: 'list',
       name: 'device',
@@ -109,22 +86,42 @@ export async function createAvd(sdkRoot: string, platform: Platform): Promise<bo
     const device = deviceAnswer.device;
 
     Logger.log();
+    Logger.log('Creating AVD...');
 
-    execBinarySync(avdmanagerLocation, 'avdmanager', platform, `create avd --name '${avdName}' --package '${systemImage}' --device '${device}' --force`);
+    cmd = `create avd -n '${avdName}' -k '${systemImage}' -d '${device}'`;
+    try {
+      const output = await execBinaryAsync(avdmanagerLocation, 'avdmanager', platform, cmd);
+      if (output?.includes('100% Fetch remote repository')) {
+        Logger.log();
+        Logger.log(`${colors.green('AVD created successfully!')}`);
 
-    const installedAvdsAfterCreate = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd -c');
+        return true;
+      }
+    } catch (err) {
+      if (typeof err === 'string') {
+        if (err.includes('already exists')) {
+          // AVD with the same name already exists. Ask user if they want to overwrite it.
+          Logger.log();
+          Logger.log(`${colors.yellow('AVD with the same name already exists!')}\n`);
+          const overwriteAnswer = await inquirer.prompt({
+            type: 'confirm',
+            name: 'overwrite',
+            message: 'Overwrite the existing AVD?'
+          });
+          Logger.log();
 
-    if (!installedAvdsAfterCreate) {
-      Logger.log(`${colors.yellow('Failed to confirm AVD creation!')} Please try launching the AVD using ${colors.cyan('npx @nightwatch/mobile-helper android connect --avd')} to confirm.\n`);
+          if (overwriteAnswer.overwrite) {
+            cmd += ' --force';
+            const output = await execBinaryAsync(avdmanagerLocation, 'avdmanager', platform, cmd);
+            if (output?.includes('100% Fetch remote repository')) {
+              Logger.log(`${colors.green('AVD created successfully!')}`);
 
-      return false;
-    } else if (!installedAvdsAfterCreate.includes(avdName)) {
-      Logger.log(`${colors.red('Failed to create AVD!')} Please try again.`);
-
-      return false;
+              return true;
+            }
+          }
+        }
+      }
     }
-
-    Logger.log(`${colors.green('AVD created successfully!')}`);
 
     return true;
   } catch (error) {
@@ -134,3 +131,4 @@ export async function createAvd(sdkRoot: string, platform: Platform): Promise<bo
     return false;
   }
 }
+
