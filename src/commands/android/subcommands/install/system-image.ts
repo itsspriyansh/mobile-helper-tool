@@ -2,44 +2,50 @@ import colors from 'ansi-colors';
 import inquirer from 'inquirer';
 
 import Logger from '../../../../logger';
-import {AvailableSystemImages, Platform} from '../../interfaces';
-import {execBinarySync} from '../../utils/sdk';
-import {getBinaryLocation} from '../../utils/common';
+import {symbols} from '../../../../utils';
 import {APILevelNames} from '../../constants';
+import {AvailableSystemImages, Platform} from '../../interfaces';
+import {getBinaryLocation} from '../../utils/common';
+import {execBinarySync} from '../../utils/sdk';
 
 export async function installSystemImage(sdkRoot: string, platform: Platform): Promise<boolean> {
   try {
     const sdkmanagerLocation = getBinaryLocation(sdkRoot, platform, 'sdkmanager', true);
-
     if (!sdkmanagerLocation) {
-      Logger.log(`${colors.red('sdkmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
+      Logger.log(`  ${colors.red(symbols().fail)} ${colors.cyan('sdkmanager')} binary not found.\n`);
+      Logger.log(`Run: ${colors.cyan('npx @nightwatch/mobile-helper android --standalone')} to setup missing requirements.`);
+      Logger.log(`(Remove the ${colors.gray('--standalone')} flag from the above command if setting up for testing.)\n`);
 
       return false;
     }
 
     const stdout = execBinarySync(sdkmanagerLocation, 'sdkmanager', platform, '--list | grep "system-images;"');
-
     if (!stdout) {
       Logger.log(`${colors.red('Failed to fetch system images!')} Please try again.`);
 
       return false;
     }
 
-    const images = stdout.split('\n').sort();
-    const imageNames = new Set<string>();
+    // sdkmanager output has repetitive system image names in different sections (Installed
+    // packages, Available packages, Available updates).
+    // Parse the output and store the system images in a Set to avoid duplicates.
+    const images = new Set<string>();
+    // After removing duplicates, sort the system images to get them in increasing order of API level.
+    const lines = stdout.split('\n').sort();
 
-    images.forEach(image => {
-      const imageName = image.split('|')[0].trim();
-      imageNames.add(imageName);
+    lines.forEach(line => {
+      const image = line.split('|')[0].trim();
+      images.add(image);
     });
 
+    // System images are represented in the format: system-images;android-<api-level>;<type>;<arch>
+    // Group all the system image types by API level. Group all the architectures by system image type.
     const availableSystemImages: AvailableSystemImages = {};
 
-    imageNames.forEach(image => {
+    images.forEach(image => {
       if (!image.includes('system-image')) {
         return;
       }
-
       const imageSplit = image.split(';');
       const apiLevel = imageSplit[1];
       const type = imageSplit[2];
@@ -50,7 +56,6 @@ export async function installSystemImage(sdkRoot: string, platform: Platform): P
       }
 
       const imageType = availableSystemImages[apiLevel].find(image => image.type === type);
-
       if (!imageType) {
         availableSystemImages[apiLevel].push({
           type: type,
@@ -63,8 +68,7 @@ export async function installSystemImage(sdkRoot: string, platform: Platform): P
 
     const apiLevelsWithNames = Object.keys(availableSystemImages).map(apiLevel => {
       if (APILevelNames[apiLevel]) {
-
-        return `${apiLevel} - ${APILevelNames[apiLevel].name} (v${APILevelNames[apiLevel].version})`;
+        return `${apiLevel}: ${APILevelNames[apiLevel]}`;
       }
 
       return apiLevel;
@@ -73,12 +77,10 @@ export async function installSystemImage(sdkRoot: string, platform: Platform): P
     const androidVersionAnswer = await inquirer.prompt({
       type: 'list',
       name: 'androidVersion',
-      message: 'Select the Android version for system image:',
+      message: 'Select the API level for system image:',
       choices: apiLevelsWithNames
     });
-    const apiLevel = androidVersionAnswer.androidVersion.split(' ')[0];
-
-    Logger.log();
+    const apiLevel = androidVersionAnswer.androidVersion.split(':')[0];
 
     const systemImageTypeAnswer = await inquirer.prompt({
       type: 'list',
@@ -86,8 +88,7 @@ export async function installSystemImage(sdkRoot: string, platform: Platform): P
       message: `Select the system image type for ${colors.cyan(apiLevel)}:`,
       choices: availableSystemImages[apiLevel].map(image => image.type)
     });
-
-    Logger.log();
+    const type = systemImageTypeAnswer.systemImageType;
 
     const systemImageArchAnswer = await inquirer.prompt({
       type: 'list',
@@ -95,16 +96,21 @@ export async function installSystemImage(sdkRoot: string, platform: Platform): P
       message: 'Select the architecture for the system image:',
       choices: availableSystemImages[apiLevel].find(image => image.type === systemImageTypeAnswer.systemImageType)?.archs
     });
+    const arch = systemImageArchAnswer.systemImageArch;
 
-    const systemImageFullName = `system-images;${apiLevel};${systemImageTypeAnswer.systemImageType};${systemImageArchAnswer.systemImageArch}`;
+    const systemImageName = `system-images;${apiLevel};${type};${arch}`;
 
     Logger.log();
-    Logger.log(`Downloading ${colors.cyan(systemImageFullName)}...\n`);
+    Logger.log(`Downloading ${colors.cyan(systemImageName)}...\n`);
 
-    const downloading = execBinarySync(sdkmanagerLocation, 'sdkmanager', platform, `'${systemImageFullName}'`);
+    const downloadStatus = execBinarySync(sdkmanagerLocation, 'sdkmanager', platform, `'${systemImageName}'`);
 
-    if (downloading) {
-      Logger.log(`${colors.green('System image downloaded successfully!')}`);
+    if (downloadStatus?.includes('100% Unzipping')) {
+      Logger.log(`${colors.green('System image downloaded successfully!')}\n`);
+
+      return true;
+    } else if (downloadStatus?.includes('100% Computing updates')) {
+      Logger.log(`${colors.green('System image already downloaded!')}\n`);
 
       return true;
     }
@@ -117,3 +123,4 @@ export async function installSystemImage(sdkRoot: string, platform: Platform): P
     return false;
   }
 }
+

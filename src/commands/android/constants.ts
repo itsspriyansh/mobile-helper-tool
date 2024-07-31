@@ -175,104 +175,31 @@ export const BINARY_TO_PACKAGE_NAME: Record<SdkBinary | typeof NIGHTWATCH_AVD, s
 };
 
 export const APILevelNames: ApiLevelNames = {
-  'android-10': {
-    version: '2.3.3-2.3.7',
-    name: 'Gingerbread'
-  },
-  'android-11': {
-    version: '3.0',
-    name: 'Honeycomb'
-  },
-  'android-12': {
-    version: '3.1',
-    name: 'Honeycomb'
-  },
-  'android-13': {
-    version: '3.2',
-    name: 'Honeycomb'
-  },
-  'android-14': {
-    version: '4.0.1-4.0.2',
-    name: 'Ice Cream Sandwich'
-  },
-  'android-15': {
-    version: '4.0.3-4.0.4',
-    name: 'Ice Cream Sandwich'
-  },
-  'android-16': {
-    version: '4.1.x',
-    name: 'Jelly Bean'
-  },
-  'android-17': {
-    version: '4.2.x',
-    name: 'Jelly Bean'
-  },
-  'android-18': {
-    version: '4.3.x',
-    name: 'Jelly Bean'
-  },
-  'android-19': {
-    version: '4.4-4.4.4',
-    name: 'KitKat'
-  },
-  'android-20': {
-    version: '4.4W',
-    name: 'KitKat Wear'
-  },
-  'android-21': {
-    version: '5.0',
-    name: 'Lollipop'
-  },
-  'android-22': {
-    version: '5.1',
-    name: 'Lollipop'
-  },
-  'android-23': {
-    version: '6.0',
-    name: 'Marshmallow'
-  },
-  'android-24': {
-    version: '7.0',
-    name: 'Nougat'
-  },
-  'android-25': {
-    version: '7.1',
-    name: 'Nougat'
-  },
-  'android-26': {
-    version: '8.0',
-    name: 'Oreo'
-  },
-  'android-27': {
-    version: '8.1',
-    name: 'Oreo'
-  },
-  'android-28': {
-    version: '9.0',
-    name: 'Pie'
-  },
-  'android-29': {
-    version: '10',
-    name: 'Android 10'
-  },
-  'android-30': {
-    version: '11',
-    name: 'Android 11'
-  },
-  'android-31': {
-    version: '12',
-    name: 'Android 12'
-  },
-  'android-32': {
-    version: '12L',
-    name: 'Android 12L'
-  },
-  'android-33': {
-    version: '13',
-    name: 'Android 13'
-  },
-  'android-34': {
-    version: '14',
-    name: 'Android 14'
-  }
+  'android-10': 'Gingerbread (v2.3.3)',
+  'android-11': 'Honeycomb (v3.0)',
+  'android-12': 'Honeycomb (v3.1)',
+  'android-13': 'Honeycomb (v3.2)',
+  'android-14': 'Ice Cream Sandwich (v4.0)',
+  'android-15': 'Ice Cream Sandwich (v4.0.3)',
+  'android-16': 'Jelly Bean (v4.1)',
+  'android-17': 'Jelly Bean (v4.2)',
+  'android-18': 'Jelly Bean (v4.3)',
+  'android-19': 'KitKat (v4.4)',
+  'android-20': 'KitKat Watch (v4.4W)',
+  'android-21': 'Lollipop (v5.0)',
+  'android-22': 'Lollipop (v5.1)',
+  'android-23': 'Marshmallow (v6.0)',
+  'android-24': 'Nougat (v7.0)',
+  'android-25': 'Nougat (v7.1)',
+  'android-26': 'Oreo (v8.0)',
+  'android-27': 'Oreo (v8.1)',
+  'android-28': 'Pie (v9.0)',
+  'android-29': 'Android 10',
+  'android-30': 'Android 11',
+  'android-31': 'Android 12',
+  'android-32': 'Android 12L',
+  'android-33': 'Android 13',
+  'android-34': 'Android 14',
+  'android-35': 'Android 15'
 };
+

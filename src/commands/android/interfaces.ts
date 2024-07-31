@@ -55,15 +55,12 @@ export interface SetupConfigs {
 export type SdkBinary = 'sdkmanager' | 'adb' | 'emulator' | 'avdmanager';
 
 export interface AvailableSystemImages {
-  [key: string]: {
+  [apiLevel: string]: {
       type: string;
       archs: string[];
   }[]
 }
 
 export interface ApiLevelNames {
-  [key: string]: {
-    version: string;
-    name: string;
-  }
+  [apiLevel: string]: string
 }
