@@ -2,15 +2,18 @@ import colors from 'ansi-colors';
 import inquirer from 'inquirer';
 
 import Logger from '../../../../logger';
-import {execBinarySync} from '../../utils/sdk';
+import {symbols} from '../../../../utils';
 import {Platform} from '../../interfaces';
 import {getBinaryLocation} from '../../utils/common';
+import {execBinarySync, execBinaryAsync} from '../../utils/sdk';
 
 export async function deleteAvd(sdkRoot: string, platform: Platform): Promise<boolean> {
   try {
     const avdmanagerLocation = getBinaryLocation(sdkRoot, platform, 'avdmanager', true);
     if (!avdmanagerLocation) {
-      Logger.log(`${colors.red('avdmanager not found!')} Use ${colors.magenta('--standalone')} flag with the main command to setup missing requirements.`);
+      Logger.log(`  ${colors.red(symbols().fail)} ${colors.cyan('avdmanager')} binary not found.\n`);
+      Logger.log(`Run: ${colors.cyan('npx @nightwatch/mobile-helper android --standalone')} to setup missing requirements.`);
+      Logger.log(`(Remove the ${colors.gray('--standalone')} flag from the above command if setting up for testing.)\n`);
 
       return false;
     }
@@ -33,19 +36,15 @@ export async function deleteAvd(sdkRoot: string, platform: Platform): Promise<bo
     Logger.log();
     Logger.log(`Deleting ${colors.cyan(avdName)}...\n`);
 
-    execBinarySync(avdmanagerLocation, 'avdmanager', platform, `delete avd --name '${avdName}'`);
+    const deleteStatus = await execBinaryAsync(avdmanagerLocation, 'avdmanager', platform, `delete avd --name '${avdName}'`);
 
-    const installedAvdsAfterDelete = execBinarySync(avdmanagerLocation, 'avdmanager', platform, 'list avd -c');
+    if (deleteStatus?.includes('deleted')) {
+      Logger.log(`${colors.green('AVD deleted successfully!')}`);
 
-    if (installedAvdsAfterDelete?.includes(avdName)) {
-      Logger.log(`${colors.red('Failed to delete AVD!')} Please try again.`);
-
-      return false;
+      return true;
     }
 
-    Logger.log(`${colors.green('AVD deleted successfully!')}`);
-
-    return true;
+    return false;
   } catch (error) {
     Logger.log(colors.red('Error occured while deleting AVD.'));
     console.error(error);
@@ -53,3 +52,4 @@ export async function deleteAvd(sdkRoot: string, platform: Platform): Promise<bo
     return false;
   }
 }
+
