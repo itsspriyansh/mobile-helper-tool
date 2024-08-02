@@ -105,7 +105,14 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
       },
       {
         name: 'app',
-        description: 'Uninstall an APK from a device'
+        description: 'Uninstall an APK from a device',
+        flags: [
+          {
+            name: 'deviceId',
+            alias: ['s'],
+            description: 'Id of the device to uninstall the APK if multiple devices are connected'
+          }
+        ]
       }
     ]
   }
