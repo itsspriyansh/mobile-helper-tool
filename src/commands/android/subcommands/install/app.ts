@@ -78,19 +78,28 @@ export async function installApp(options: Options, sdkRoot: string, platform: Pl
     }
 
     Logger.log('Installing APK...');
+    try {
+      const installationStatus = await execBinaryAsync(adbLocation, 'adb', platform, `-s ${options.deviceId} install ${options.path}`);
+      if (installationStatus?.includes('Success')) {
+        Logger.log();
+        Logger.log(colors.green('APK installed successfully!\n'));
 
-    const installationStatus = await execBinaryAsync(adbLocation, 'adb', platform, `-s ${options.deviceId} install ${options.path}`);
-    if (installationStatus?.includes('Success')) {
-      Logger.log(colors.green('APK installed successfully!\n'));
+        return true;
+      }
+      Logger.log();
+      handleError(installationStatus);
 
-      return true;
+    } catch (installationStatus) {
+      Logger.log();
+      handleError(installationStatus);
+
+      return false;
     }
-
-    handleError(installationStatus);
 
     return false;
   } catch (err) {
-    handleError(err);
+    Logger.log(colors.red('Error occured while installing APK.'));
+    console.error(err);
 
     return false;
   }
