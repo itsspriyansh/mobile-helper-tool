@@ -12,6 +12,7 @@ import {connect} from './connect';
 import {disconnect} from './disconnect';
 import {install} from './install';
 import {uninstall} from './uninstall';
+import {update} from './update';
 
 export class AndroidSubcommand {
   sdkRoot: string;
@@ -80,6 +81,8 @@ export class AndroidSubcommand {
       return await install(this.options, this.sdkRoot, this.platform);
     } else if (this.subcommand === 'uninstall') {
       return await uninstall(this.options, this.sdkRoot, this.platform);
+    } else if (this.subcommand === 'update') {
+      return await update(this.sdkRoot, this.platform);
     }
 
     return false;

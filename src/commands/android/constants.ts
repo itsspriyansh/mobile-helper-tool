@@ -115,6 +115,10 @@ export const AVAILABLE_SUBCOMMANDS: AvailableSubcommands = {
         ]
       }
     ]
+  },
+  update: {
+    description: 'Update the Android SDK packages',
+    options: []
   }
 };
 
